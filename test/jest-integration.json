@@ -1,0 +1,29 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".integration-spec.ts$",
+  "maxWorkers": 1,
+  "testTimeout": 30000,
+  "forceExit": true,
+  "setupFiles": ["<rootDir>/env-setup.ts"],
+  "transform": {
+    "^.+\\.(t|j)s$": ["ts-jest", {
+      "tsconfig": {
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true
+      }
+    }]
+  },
+  "transformIgnorePatterns": [
+    "node_modules/(?!(uuid)/)"
+  ],
+  "moduleNameMapper": {
+    "^@modules/(.*)$": "<rootDir>/../src/modules/$1",
+    "^@shared/(.*)$": "<rootDir>/../src/shared/$1",
+    "^@config/(.*)$": "<rootDir>/../src/config/$1",
+    "^@database/(.*)$": "<rootDir>/../src/database/$1",
+    "^@auth/(.*)$": "<rootDir>/../src/modules/auth/$1",
+    "^@user/(.*)$": "<rootDir>/../src/modules/user/$1"
+  }
+}

@@ -1,0 +1,93 @@
+# compiled output
+/dist
+/node_modules
+/build
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests
+/coverage
+/.nyc_output
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# dotenv environment variable files
+.env
+.env.*.local
+.env.development
+.env.production
+.env.test
+
+# temp directory
+.temp
+.tmp
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# SOPS private keys
+keys.txt
+*.key
+
+# Docker local overrides
+docker-compose.override.yml
+
+# Cache
+.eslintcache
+.cache/
+.parcel-cache/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Local database (si utilisée en dev)
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploads locaux (migration S3 prévue)
+uploads/
+public/uploads/
+storage/
+
+# Documentation générée
+docs/generated/
+
+# AI
+**/.claude

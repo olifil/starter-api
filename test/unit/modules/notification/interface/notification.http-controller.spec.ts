@@ -1,0 +1,128 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { ConfigService } from '@nestjs/config';
+import { NotificationHttpController } from '@modules/notification/interface/http-controller/notification.http-controller';
+import { SendNotificationCommand } from '@modules/notification/core/application/commands/send-notification/send-notification.command';
+import { GetNotificationsQuery } from '@modules/notification/core/application/queries/get-notifications/get-notifications.query';
+import { MarkAsReadCommand } from '@modules/notification/core/application/commands/mark-as-read/mark-as-read.command';
+import {
+  ITemplateRenderer,
+  TEMPLATE_RENDERER,
+} from '@modules/notification/core/application/services/template-renderer.service';
+import {
+  INotificationRepository,
+  NOTIFICATION_REPOSITORY,
+} from '@modules/notification/core/domain/repositories/notification.repository.interface';
+
+describe('NotificationHttpController', () => {
+  let controller: NotificationHttpController;
+  let commandBus: { execute: jest.Mock };
+  let queryBus: { execute: jest.Mock };
+  let templateRenderer: jest.Mocked<ITemplateRenderer>;
+  let notificationRepository: Partial<jest.Mocked<INotificationRepository>>;
+
+  beforeEach(async () => {
+    commandBus = { execute: jest.fn() };
+    queryBus = { execute: jest.fn() };
+    templateRenderer = { render: jest.fn() };
+    notificationRepository = { countByUserAndStatus: jest.fn() };
+
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [NotificationHttpController],
+      providers: [
+        { provide: CommandBus, useValue: commandBus },
+        { provide: QueryBus, useValue: queryBus },
+        { provide: TEMPLATE_RENDERER, useValue: templateRenderer },
+        { provide: NOTIFICATION_REPOSITORY, useValue: notificationRepository },
+        { provide: ConfigService, useValue: { get: jest.fn() } },
+      ],
+    }).compile();
+
+    controller = module.get<NotificationHttpController>(NotificationHttpController);
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
+  describe('send', () => {
+    it('should dispatch SendNotificationCommand and return result', async () => {
+      const dto = {
+        userIds: ['user-1'],
+        type: 'welcome',
+        channels: ['EMAIL'],
+        variables: { name: 'Alice' },
+        locale: 'fr',
+      };
+      const expected = [{ id: 'notif-1' }];
+      commandBus.execute.mockResolvedValue(expected);
+
+      const result = await controller.send(dto as never);
+
+      expect(commandBus.execute).toHaveBeenCalledWith(
+        new SendNotificationCommand(
+          dto.userIds,
+          dto.type,
+          dto.channels,
+          dto.variables,
+          dto.locale,
+        ),
+      );
+      expect(result).toBe(expected);
+    });
+  });
+
+  describe('getMyNotifications', () => {
+    it('should dispatch GetNotificationsQuery with parsed pagination', async () => {
+      const user = { userId: 'user-1' };
+      const expected = { data: [], total: 0 };
+      queryBus.execute.mockResolvedValue(expected);
+
+      const result = await controller.getMyNotifications(user, '2', '15');
+
+      expect(queryBus.execute).toHaveBeenCalledWith(new GetNotificationsQuery('user-1', 2, 15));
+      expect(result).toBe(expected);
+    });
+  });
+
+  describe('markAsRead', () => {
+    it('should dispatch MarkAsReadCommand', async () => {
+      const user = { userId: 'user-1' };
+      const expected = { id: 'notif-1', status: 'READ' };
+      commandBus.execute.mockResolvedValue(expected);
+
+      const result = await controller.markAsRead('notif-1', user);
+
+      expect(commandBus.execute).toHaveBeenCalledWith(new MarkAsReadCommand('notif-1', 'user-1'));
+      expect(result).toBe(expected);
+    });
+  });
+
+  describe('getUnreadCount', () => {
+    it('should return count from repository', async () => {
+      const user = { userId: 'user-1' };
+      notificationRepository.countByUserAndStatus!.mockResolvedValue(5);
+
+      const result = await controller.getUnreadCount(user);
+
+      expect(notificationRepository.countByUserAndStatus).toHaveBeenCalledWith('user-1', 'SENT');
+      expect(result).toEqual({ count: 5 });
+    });
+  });
+
+  describe('preview', () => {
+    it('should call templateRenderer.render with correct args', () => {
+      templateRenderer.render.mockReturnValue({ subject: 'Bienvenue', body: '<p>Hello</p>' });
+
+      const result = controller.preview('welcome', 'fr', 'EMAIL');
+
+      expect(templateRenderer.render).toHaveBeenCalledWith(
+        'welcome',
+        'EMAIL',
+        'fr',
+        expect.objectContaining({ firstName: 'Jean' }),
+      );
+      expect(result).toEqual({ subject: 'Bienvenue', body: '<p>Hello</p>' });
+    });
+  });
+});

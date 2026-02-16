@@ -1,0 +1,36 @@
+welcome:
+  subject: "Bienvenue sur {appName}"
+  body: "Bonjour {firstName}, bienvenue sur {appName} ! Votre compte a été créé avec succès. Pour activer votre compte, veuillez vérifier votre adresse email en cliquant sur le lien suivant : {verificationLink}"
+  sms: "Bienvenue {firstName} sur {appName} !"
+  push: "Bienvenue sur {appName} !"
+
+password-reset:
+  subject: "Réinitialisation de votre mot de passe"
+  body: "Bonjour {firstName}, vous avez demandé la réinitialisation de votre mot de passe. Cliquez sur le lien suivant pour le réinitialiser : {resetLink}. Ce lien expire dans {expiresIn}."
+  sms: "Votre code de réinitialisation : {code}. Expire dans {expiresIn}."
+  push: "Demande de réinitialisation de mot de passe reçue."
+
+account-verified:
+  subject: "Votre compte a été vérifié"
+  body: "Bonjour {firstName}, votre adresse email a été vérifiée avec succès. Vous pouvez maintenant accéder à toutes les fonctionnalités de {appName}."
+  sms: "Votre compte {appName} est vérifié."
+  push: "Votre compte a été vérifié avec succès !"
+
+generic:
+  subject: "{subject}"
+  body: "{message}"
+  sms: "{message}"
+  push: "{message}"
+
+health-alert:
+  subject: "[{appName}] Alerte système — {service} {statusLabel}"
+  body: "Le service <strong>{service}</strong> est <strong>{statusLabel}</strong>. Détails : {details}. Heure : {timestamp}"
+  sms: "Alerte {appName} : {service} est {statusLabel}. {details}"
+  push: "{service} {statusLabel}"
+
+layout:
+  header:
+    title: "{appName}"
+  footer:
+    rights: "© {year} {appName}. Tous droits réservés."
+    disclaimer: "Vous recevez cet email car vous êtes inscrit sur {appName}."

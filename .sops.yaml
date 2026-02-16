@@ -1,0 +1,12 @@
+creation_rules:
+  # Règle de chiffrement pour le fichier .env.enc principal (développement local)
+  # Clé publique utilisée pour chiffrer - Clé privée dans ~/.config/sops/age/keys.txt nécessaire pour déchiffrer
+  - path_regex: \.env\.enc$
+    age: >-
+      age1cjk787fxsj0mahdhx85szachs5jzt2wk5qxqads8d4rdnz35nq7qndxu8j
+
+  # Règle de chiffrement pour les fichiers spécifiques aux environnements (.env.development.enc, .env.production.enc, etc.)
+  # Ajouter plusieurs clés publiques séparées par des virgules pour permettre à plusieurs personnes de déchiffrer
+  - path_regex: \.env\..*\.enc$
+    age: >-
+      age1cjk787fxsj0mahdhx85szachs5jzt2wk5qxqads8d4rdnz35nq7qndxu8j

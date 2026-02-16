@@ -1,0 +1,166 @@
+services:
+  # Base de données PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: starter-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-starter}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-starter123}
+      POSTGRES_DB: ${DB_NAME:-starter_db}
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U starter']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - starter-network
+
+  # Base de données PostgreSQL pour les tests
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: starter-db-test
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${TEST_DB_USERNAME:-starter_test}
+      POSTGRES_PASSWORD: ${TEST_DB_PASSWORD:-starter_test123}
+      POSTGRES_DB: ${TEST_DB_NAME:-starter_test_db}
+    ports:
+      - '${TEST_DB_PORT:-5433}:5432'
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U starter_test']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - starter-network
+
+  # Redis (BullMQ)
+  redis:
+    image: redis:7-alpine
+    container_name: starter-redis
+    restart: unless-stopped
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - starter-network
+
+  # Mailhog (SMTP de développement)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: starter-mailhog
+    restart: unless-stopped
+    ports:
+      - '1025:1025'   # SMTP
+      - '8025:8025'   # Interface web
+    networks:
+      - starter-network
+
+  # API NestJS
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: starter-api
+    restart: unless-stopped
+    ports:
+      - '${PORT:-3000}:3000'
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${DB_USERNAME:-starter}:${DB_PASSWORD:-starter123}@postgres:5432/${DB_NAME:-starter_db}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-15m}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-7d}
+      MATOMO_URL: http://matomo
+      MATOMO_SITE_ID: ${MATOMO_SITE_ID:-1}
+      MATOMO_TOKEN: ${MATOMO_TOKEN:-}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SMTP_HOST: ${SMTP_HOST:-mailhog}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@starter.local}
+      WS_ENABLED: 'true'
+      DEFAULT_LANGUAGE: fr
+      FALLBACK_LANGUAGE: en
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: sh -c "npm install && npx prisma generate && npm run start:dev"
+    networks:
+      - starter-network
+
+  # Matomo Analytics
+  matomo:
+    image: matomo:latest
+    container_name: starter-matomo
+    restart: unless-stopped
+    ports:
+      - '${MATOMO_PORT:-8080}:80'
+    environment:
+      - MATOMO_DATABASE_HOST=matomo-db
+      - MATOMO_DATABASE_ADAPTER=mysql
+      - MATOMO_DATABASE_TABLES_PREFIX=matomo_
+      - MATOMO_DATABASE_USERNAME=matomo
+      - MATOMO_DATABASE_PASSWORD=matomo123
+      - MATOMO_DATABASE_DBNAME=matomo
+    volumes:
+      - matomo_data:/var/www/html
+    depends_on:
+      matomo-db:
+        condition: service_healthy
+    networks:
+      - starter-network
+
+  # Base MySQL pour Matomo
+  matomo-db:
+    image: mysql:8.0
+    container_name: starter-matomo-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: matomo
+      MYSQL_USER: matomo
+      MYSQL_PASSWORD: matomo123
+    volumes:
+      - matomo_db_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - starter-network
+
+volumes:
+  postgres_data:
+  postgres_test_data:
+  redis_data:
+  matomo_data:
+  matomo_db_data:
+
+networks:
+  starter-network:
+    driver: bridge

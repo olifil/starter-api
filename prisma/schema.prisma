@@ -1,0 +1,142 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// AUTH & USER MODULE
+// ============================================
+
+enum Role {
+  ANONYMOUS_USER
+  AUTHENTICATED_USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  passwordHash      String    @map("password_hash")
+  emailVerified     Boolean   @default(false) @map("email_verified")
+  emailVerifiedAt   DateTime? @map("email_verified_at")
+
+  // Profil utilisateur (module User)
+  firstName         String?   @map("first_name")
+  lastName          String?   @map("last_name")
+  bio               String?
+  avatarUrl         String?   @map("avatar_url")
+  phoneNumber       String?   @map("phone_number")
+
+  // Rôle et permissions
+  role              Role      @default(AUTHENTICATED_USER)
+
+  // Métadonnées
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  lastLoginAt       DateTime? @map("last_login_at")
+
+  // Relations
+  refreshTokens           RefreshToken[]
+  notifications           Notification[]
+  notificationPreferences NotificationPreference[]
+  pushSubscriptions       PushSubscription[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  token       String   @unique
+  userId      String   @map("user_id")
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  revokedAt   DateTime? @map("revoked_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ============================================
+// NOTIFICATION MODULE
+// ============================================
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  PUSH
+  WEB_PUSH
+  WEBSOCKET
+}
+
+enum NotificationStatus {
+  PENDING
+  QUEUED
+  SENT
+  FAILED
+  READ
+}
+
+model Notification {
+  id            String              @id @default(uuid())
+  userId        String              @map("user_id")
+  type          String
+  channel       NotificationChannel
+  status        NotificationStatus  @default(PENDING)
+  subject       String?
+  body          String
+  metadata      Json?
+  sentAt        DateTime?           @map("sent_at")
+  readAt        DateTime?           @map("read_at")
+  failedAt      DateTime?           @map("failed_at")
+  failureReason String?             @map("failure_reason")
+  retryCount    Int                 @default(0) @map("retry_count")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id        String              @id @default(uuid())
+  userId    String              @map("user_id")
+  channel   NotificationChannel
+  enabled   Boolean             @default(true)
+  createdAt DateTime            @default(now()) @map("created_at")
+  updatedAt DateTime            @updatedAt @map("updated_at")
+
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channel])
+  @@map("notification_preferences")
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  endpoint  String
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+

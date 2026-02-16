@@ -1,0 +1,36 @@
+welcome:
+  subject: "Welcome to {appName}"
+  body: "Hello {firstName}, welcome to {appName}! Your account has been created successfully. To activate your account, please verify your email address by clicking the following link: {verificationLink}"
+  sms: "Welcome {firstName} to {appName}!"
+  push: "Welcome to {appName}!"
+
+password-reset:
+  subject: "Reset your password"
+  body: "Hello {firstName}, you requested a password reset. Click the following link to reset it: {resetLink}. This link expires in {expiresIn}."
+  sms: "Your reset code: {code}. Expires in {expiresIn}."
+  push: "Password reset request received."
+
+account-verified:
+  subject: "Your account has been verified"
+  body: "Hello {firstName}, your email address has been verified successfully. You can now access all features of {appName}."
+  sms: "Your {appName} account is verified."
+  push: "Your account has been verified successfully!"
+
+generic:
+  subject: "{subject}"
+  body: "{message}"
+  sms: "{message}"
+  push: "{message}"
+
+health-alert:
+  subject: "[{appName}] System alert — {service} {statusLabel}"
+  body: "Service <strong>{service}</strong> is <strong>{statusLabel}</strong>. Details: {details}. Time: {timestamp}"
+  sms: "Alert {appName}: {service} is {statusLabel}. {details}"
+  push: "{service} {statusLabel}"
+
+layout:
+  header:
+    title: "{appName}"
+  footer:
+    rights: "© {year} {appName}. All rights reserved."
+    disclaimer: "You are receiving this email because you are registered on {appName}."
