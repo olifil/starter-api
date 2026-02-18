@@ -6,7 +6,7 @@ welcome:
 
 password-reset:
   subject: "Réinitialisation de votre mot de passe"
-  body: "Bonjour {firstName}, vous avez demandé la réinitialisation de votre mot de passe. Cliquez sur le lien suivant pour le réinitialiser : {resetLink}. Ce lien expire dans {expiresIn}."
+  body: "<p>Bonjour {firstName}, vous avez demandé la réinitialisation de votre mot de passe.</p><p>Ce lien expire dans {expiresIn}.</p><p style=\"text-align: center; margin: 32px 0;\"><a href=\"{resetLink}\" style=\"background-color: #3b82f6; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 15px; display: inline-block;\">Modifier mon mot de passe</a></p>"
   sms: "Votre code de réinitialisation : {code}. Expire dans {expiresIn}."
   push: "Demande de réinitialisation de mot de passe reçue."
 
