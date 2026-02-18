@@ -4,6 +4,7 @@ import { EmailAlreadyExistsException } from '@modules/user/core/application/exce
 import { UserNotFoundException } from '@modules/user/core/application/exceptions/user-not-found.exception';
 import { InvalidCredentialsException } from '@modules/auth/core/application/exceptions/invalid-credentials.exception';
 import { InvalidRefreshTokenException } from '@modules/auth/core/application/exceptions/invalid-refresh-token.exception';
+import { EmailNotVerifiedException } from '@modules/auth/core/application/exceptions/email-not-verified.exception';
 
 describe('DomainExceptionFilter', () => {
   let filter: DomainExceptionFilter;
@@ -129,6 +130,22 @@ describe('DomainExceptionFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith({
         statusCode: HttpStatus.UNAUTHORIZED,
         message: 'Refresh token invalide ou expiré',
+        timestamp: expect.any(String),
+      });
+    });
+
+    it('should handle EmailNotVerifiedException with 403 status', () => {
+      // Arrange
+      const exception = new EmailNotVerifiedException();
+
+      // Act
+      filter.catch(exception, mockArgumentsHost);
+
+      // Assert
+      expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.FORBIDDEN);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        statusCode: HttpStatus.FORBIDDEN,
+        message: exception.message,
         timestamp: expect.any(String),
       });
     });

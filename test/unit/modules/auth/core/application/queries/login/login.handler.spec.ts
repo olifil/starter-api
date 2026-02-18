@@ -16,18 +16,18 @@ import { User } from '@modules/user/core/domain/entities/user.entity';
 import { Email } from '@modules/user/core/domain/value-objects/email.vo';
 import { HashedPassword } from '@modules/user/core/domain/value-objects/hashed-password.vo';
 import { InvalidCredentialsException } from '@modules/auth/core/application/exceptions/invalid-credentials.exception';
+import { EmailNotVerifiedException } from '@modules/auth/core/application/exceptions/email-not-verified.exception';
 import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 describe('LoginHandler', () => {
   let handler: LoginHandler;
   let userRepository: jest.Mocked<IUserRepository>;
-  let refreshTokenRepository: jest.Mocked<IRefreshTokenRepository>;
   let jwtService: jest.Mocked<JwtService>;
   let configService: jest.Mocked<ConfigService>;
-  let eventBus: jest.Mocked<EventBus>;
   let matomoService: jest.Mocked<MatomoService>;
 
-  const createMockUser = async (): Promise<User> => {
+  // Utilisateur avec email vérifié (cas nominal)
+  const createVerifiedUser = async (): Promise<User> => {
     const password = await HashedPassword.fromPlainPassword('Password123!');
     return new User({
       id: 'user-123',
@@ -35,9 +35,32 @@ describe('LoginHandler', () => {
       password,
       firstName: 'John',
       lastName: 'Doe',
+      emailVerified: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+  };
+
+  // Utilisateur avec email non vérifié
+  const createUnverifiedUser = async (): Promise<User> => {
+    const password = await HashedPassword.fromPlainPassword('Password123!');
+    return new User({
+      id: 'user-456',
+      email: new Email('unverified@example.com'),
+      password,
+      firstName: 'Jane',
+      lastName: 'Doe',
+      emailVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  };
+
+  const mockConfig: Record<string, string> = {
+    'jwt.secret': 'test-secret',
+    'jwt.expiresIn': '15m',
+    'jwt.refreshSecret': 'test-refresh-secret',
+    'jwt.refreshExpiresIn': '7d',
   };
 
   beforeEach(async () => {
@@ -68,39 +91,19 @@ describe('LoginHandler', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LoginHandler,
-        {
-          provide: USER_REPOSITORY,
-          useValue: mockUserRepository,
-        },
-        {
-          provide: REFRESH_TOKEN_REPOSITORY,
-          useValue: mockRefreshTokenRepository,
-        },
-        {
-          provide: JwtService,
-          useValue: mockJwtService,
-        },
-        {
-          provide: ConfigService,
-          useValue: mockConfigService,
-        },
-        {
-          provide: EventBus,
-          useValue: mockEventBus,
-        },
-        {
-          provide: MatomoService,
-          useValue: mockMatomoService,
-        },
+        { provide: USER_REPOSITORY, useValue: mockUserRepository },
+        { provide: REFRESH_TOKEN_REPOSITORY, useValue: mockRefreshTokenRepository },
+        { provide: JwtService, useValue: mockJwtService },
+        { provide: ConfigService, useValue: mockConfigService },
+        { provide: EventBus, useValue: mockEventBus },
+        { provide: MatomoService, useValue: mockMatomoService },
       ],
     }).compile();
 
     handler = module.get<LoginHandler>(LoginHandler);
     userRepository = module.get(USER_REPOSITORY);
-    refreshTokenRepository = module.get(REFRESH_TOKEN_REPOSITORY);
     jwtService = module.get(JwtService);
     configService = module.get(ConfigService);
-    eventBus = module.get(EventBus);
     matomoService = module.get(MatomoService);
   });
 
@@ -112,18 +115,12 @@ describe('LoginHandler', () => {
     it('should successfully login with valid credentials and return tokens', async () => {
       // Arrange
       const query = new LoginQuery('test@example.com', 'Password123!');
-      const mockUser = await createMockUser();
+      const mockUser = await createVerifiedUser();
 
       userRepository.findByEmail.mockResolvedValue(mockUser);
-      configService.get.mockImplementation((key: string) => {
-        const config: Record<string, string> = {
-          'jwt.secret': 'test-secret',
-          'jwt.expiresIn': '15m',
-          'jwt.refreshSecret': 'test-refresh-secret',
-          'jwt.refreshExpiresIn': '7d',
-        };
-        return config[key];
-      });
+      configService.get.mockImplementation((key: string, defaultValue?: unknown) =>
+        key in mockConfig ? mockConfig[key] : defaultValue,
+      );
       jwtService.sign.mockReturnValueOnce('access-token');
       jwtService.sign.mockReturnValueOnce('refresh-token');
       matomoService.trackUserLogin.mockResolvedValue(undefined);
@@ -166,7 +163,7 @@ describe('LoginHandler', () => {
     it('should throw InvalidCredentialsException when password is incorrect', async () => {
       // Arrange
       const query = new LoginQuery('test@example.com', 'WrongPassword123!');
-      const mockUser = await createMockUser();
+      const mockUser = await createVerifiedUser();
 
       userRepository.findByEmail.mockResolvedValue(mockUser);
 
@@ -176,21 +173,39 @@ describe('LoginHandler', () => {
       expect(matomoService.trackUserLogin).not.toHaveBeenCalled();
     });
 
+    it('should throw EmailNotVerifiedException when email has not been verified', async () => {
+      // Arrange
+      const query = new LoginQuery('unverified@example.com', 'Password123!');
+      const mockUser = await createUnverifiedUser();
+
+      userRepository.findByEmail.mockResolvedValue(mockUser);
+
+      // Act & Assert
+      await expect(handler.execute(query)).rejects.toThrow(EmailNotVerifiedException);
+      expect(jwtService.sign).not.toHaveBeenCalled();
+      expect(matomoService.trackUserLogin).not.toHaveBeenCalled();
+    });
+
+    it('should check email verification after password validation', async () => {
+      // Arrange — mauvais mot de passe ET email non vérifié : doit lever InvalidCredentials, pas EmailNotVerified
+      const query = new LoginQuery('unverified@example.com', 'WrongPassword!');
+      const mockUser = await createUnverifiedUser();
+
+      userRepository.findByEmail.mockResolvedValue(mockUser);
+
+      // Act & Assert
+      await expect(handler.execute(query)).rejects.toThrow(InvalidCredentialsException);
+    });
+
     it('should normalize email to lowercase', async () => {
       // Arrange
       const query = new LoginQuery('Test@Example.COM', 'Password123!');
-      const mockUser = await createMockUser();
+      const mockUser = await createVerifiedUser();
 
       userRepository.findByEmail.mockResolvedValue(mockUser);
-      configService.get.mockImplementation((key: string, defaultValue?: unknown) => {
-        const config: Record<string, string> = {
-          'jwt.secret': 'test-secret',
-          'jwt.expiresIn': '15m',
-          'jwt.refreshSecret': 'test-refresh-secret',
-          'jwt.refreshExpiresIn': '7d',
-        };
-        return key in config ? config[key] : defaultValue;
-      });
+      configService.get.mockImplementation((key: string, defaultValue?: unknown) =>
+        key in mockConfig ? mockConfig[key] : defaultValue,
+      );
       jwtService.sign.mockReturnValue('token');
       matomoService.trackUserLogin.mockResolvedValue(undefined);
 
@@ -206,13 +221,13 @@ describe('LoginHandler', () => {
     it('should use default expiresIn when config is not set', async () => {
       // Arrange
       const query = new LoginQuery('test@example.com', 'Password123!');
-      const mockUser = await createMockUser();
+      const mockUser = await createVerifiedUser();
 
       userRepository.findByEmail.mockResolvedValue(mockUser);
       configService.get.mockImplementation((key: string) => {
         const config: Record<string, string | undefined> = {
           'jwt.secret': 'test-secret',
-          'jwt.expiresIn': undefined, // No config set
+          'jwt.expiresIn': undefined,
           'jwt.refreshSecret': 'test-refresh-secret',
           'jwt.refreshExpiresIn': '7d',
         };
@@ -231,18 +246,12 @@ describe('LoginHandler', () => {
     it('should generate JWT payload with correct user data', async () => {
       // Arrange
       const query = new LoginQuery('test@example.com', 'Password123!');
-      const mockUser = await createMockUser();
+      const mockUser = await createVerifiedUser();
 
       userRepository.findByEmail.mockResolvedValue(mockUser);
-      configService.get.mockImplementation((key: string, defaultValue?: unknown) => {
-        const config: Record<string, string> = {
-          'jwt.secret': 'test-secret',
-          'jwt.expiresIn': '15m',
-          'jwt.refreshSecret': 'test-refresh-secret',
-          'jwt.refreshExpiresIn': '7d',
-        };
-        return key in config ? config[key] : defaultValue;
-      });
+      configService.get.mockImplementation((key: string, defaultValue?: unknown) =>
+        key in mockConfig ? mockConfig[key] : defaultValue,
+      );
       jwtService.sign.mockReturnValue('token');
       matomoService.trackUserLogin.mockResolvedValue(undefined);
 
@@ -251,10 +260,7 @@ describe('LoginHandler', () => {
 
       // Assert
       expect(jwtService.sign).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sub: 'user-123',
-          email: 'test@example.com',
-        }),
+        expect.objectContaining({ sub: 'user-123', email: 'test@example.com' }),
         expect.any(Object),
       );
     });

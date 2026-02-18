@@ -8,26 +8,23 @@ import {
   IUserRepository,
   USER_REPOSITORY,
 } from '@modules/user/core/domain/repositories/user.repository.interface';
-import {
-  IRefreshTokenRepository,
-  REFRESH_TOKEN_REPOSITORY,
-} from '@modules/auth/core/domain/repositories/refresh-token.repository.interface';
 import { User } from '@modules/user/core/domain/entities/user.entity';
 import { Email } from '@modules/user/core/domain/value-objects/email.vo';
 import { HashedPassword } from '@modules/user/core/domain/value-objects/hashed-password.vo';
+import { UserCreatedEvent } from '@modules/user/core/domain/events/user-created.event';
 import { EmailAlreadyExistsException } from '@modules/user/core/application/exceptions/email-already-exists.exception';
 import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 describe('RegisterService', () => {
   let service: RegisterService;
   let userRepository: jest.Mocked<IUserRepository>;
-  let refreshTokenRepository: jest.Mocked<IRefreshTokenRepository>;
   let jwtService: jest.Mocked<JwtService>;
   let configService: jest.Mocked<ConfigService>;
   let eventBus: jest.Mocked<EventBus>;
   let matomoService: jest.Mocked<MatomoService>;
 
-  const createMockUser = (): User => {
+  // Entité reconstruite depuis la DB (avec id fourni) — domainEvents vide
+  const createSavedUser = (): User => {
     return new User({
       id: 'user-123',
       email: new Email('test@example.com'),
@@ -39,13 +36,14 @@ describe('RegisterService', () => {
     });
   };
 
+  const mockConfig: Record<string, string> = {
+    'jwt.verificationSecret': 'test-verification-secret',
+    'jwt.verificationExpiresIn': '7d',
+  };
+
   beforeEach(async () => {
     const mockUserRepository: Partial<IUserRepository> = {
       existsByEmail: jest.fn(),
-      save: jest.fn(),
-    };
-
-    const mockRefreshTokenRepository: Partial<IRefreshTokenRepository> = {
       save: jest.fn(),
     };
 
@@ -68,36 +66,16 @@ describe('RegisterService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RegisterService,
-        {
-          provide: USER_REPOSITORY,
-          useValue: mockUserRepository,
-        },
-        {
-          provide: REFRESH_TOKEN_REPOSITORY,
-          useValue: mockRefreshTokenRepository,
-        },
-        {
-          provide: JwtService,
-          useValue: mockJwtService,
-        },
-        {
-          provide: ConfigService,
-          useValue: mockConfigService,
-        },
-        {
-          provide: EventBus,
-          useValue: mockEventBus,
-        },
-        {
-          provide: MatomoService,
-          useValue: mockMatomoService,
-        },
+        { provide: USER_REPOSITORY, useValue: mockUserRepository },
+        { provide: JwtService, useValue: mockJwtService },
+        { provide: ConfigService, useValue: mockConfigService },
+        { provide: EventBus, useValue: mockEventBus },
+        { provide: MatomoService, useValue: mockMatomoService },
       ],
     }).compile();
 
     service = module.get<RegisterService>(RegisterService);
     userRepository = module.get(USER_REPOSITORY);
-    refreshTokenRepository = module.get(REFRESH_TOKEN_REPOSITORY);
     jwtService = module.get(JwtService);
     configService = module.get(ConfigService);
     eventBus = module.get(EventBus);
@@ -109,28 +87,16 @@ describe('RegisterService', () => {
   });
 
   describe('execute', () => {
-    it('should successfully register a new user and return tokens', async () => {
+    it('should successfully register a new user and return void', async () => {
       // Arrange
       const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe');
-      const mockUser = createMockUser();
 
       userRepository.existsByEmail.mockResolvedValue(false);
-      userRepository.save.mockResolvedValue(mockUser);
-      configService.get.mockImplementation((key: string, defaultValue?: unknown) => {
-        const config: Record<string, string> = {
-          'jwt.verificationSecret': 'test-verification-secret',
-          'jwt.verificationExpiresIn': '7d',
-          'jwt.secret': 'test-secret',
-          'jwt.expiresIn': '15m',
-          'jwt.refreshSecret': 'test-refresh-secret',
-          'jwt.refreshExpiresIn': '7d',
-        };
-        return key in config ? config[key] : defaultValue;
-      });
-      // sign appelé 3 fois : verification token, access token, refresh token
+      userRepository.save.mockResolvedValue(createSavedUser());
+      configService.get.mockImplementation((key: string, defaultValue?: unknown) =>
+        key in mockConfig ? mockConfig[key] : defaultValue,
+      );
       jwtService.sign.mockReturnValueOnce('verification-token');
-      jwtService.sign.mockReturnValueOnce('access-token');
-      jwtService.sign.mockReturnValueOnce('refresh-token');
       matomoService.trackUserRegistration.mockResolvedValue(undefined);
 
       // Act
@@ -141,25 +107,14 @@ describe('RegisterService', () => {
         expect.objectContaining({ value: 'test@example.com' }),
       );
       expect(userRepository.save).toHaveBeenCalled();
-      expect(jwtService.sign).toHaveBeenCalledTimes(3);
+      // Seul le token de vérification d'email est généré (plus d'access/refresh token)
+      expect(jwtService.sign).toHaveBeenCalledTimes(1);
       expect(jwtService.sign).toHaveBeenCalledWith(
         { sub: 'user-123', email: 'test@example.com', type: 'email-verification' },
         expect.objectContaining({ secret: 'test-verification-secret' }),
       );
-      expect(jwtService.sign).toHaveBeenCalledWith(
-        { sub: 'user-123', email: 'test@example.com' },
-        { secret: 'test-secret', expiresIn: '15m' },
-      );
-      expect(jwtService.sign).toHaveBeenCalledWith(
-        { sub: 'user-123', email: 'test@example.com', jti: expect.any(String) },
-        { secret: 'test-refresh-secret', expiresIn: '7d' },
-      );
       expect(matomoService.trackUserRegistration).toHaveBeenCalledWith('user-123');
-      expect(result).toEqual({
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-        expiresIn: '15m',
-      });
+      expect(result).toBeUndefined();
     });
 
     it('should throw EmailAlreadyExistsException when email is already taken', async () => {
@@ -173,52 +128,62 @@ describe('RegisterService', () => {
       expect(jwtService.sign).not.toHaveBeenCalled();
     });
 
-    it('should publish domain events after saving user', async () => {
+    it('should publish a UserCreatedEvent enriched with the verification token', async () => {
       // Arrange
       const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe');
-      const mockUser = createMockUser();
 
       userRepository.existsByEmail.mockResolvedValue(false);
-      userRepository.save.mockResolvedValue(mockUser);
-      configService.get.mockImplementation((key: string, defaultValue?: unknown) => {
-        const config: Record<string, string> = {
-          'jwt.verificationSecret': 'test-verification-secret',
-          'jwt.verificationExpiresIn': '7d',
-          'jwt.secret': 'test-secret',
-          'jwt.expiresIn': '15m',
-          'jwt.refreshSecret': 'test-refresh-secret',
-          'jwt.refreshExpiresIn': '7d',
-        };
-        return key in config ? config[key] : defaultValue;
-      });
-      jwtService.sign.mockReturnValue('token');
+      userRepository.save.mockResolvedValue(createSavedUser());
+      configService.get.mockImplementation((key: string, defaultValue?: unknown) =>
+        key in mockConfig ? mockConfig[key] : defaultValue,
+      );
+      jwtService.sign.mockReturnValueOnce('verification-token');
+      matomoService.trackUserRegistration.mockResolvedValue(undefined);
+
+      // Act
+      await service.execute(command);
+
+      // Assert — l'entité originale (pas savedUser) porte bien l'event
+      expect(eventBus.publish).toHaveBeenCalledTimes(1);
+      expect(eventBus.publish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          verificationToken: 'verification-token',
+          email: 'test@example.com',
+          firstName: 'John',
+          lastName: 'Doe',
+        }),
+      );
+    });
+
+    it('should publish a UserCreatedEvent that is a UserCreatedEvent instance', async () => {
+      // Arrange
+      const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe');
+
+      userRepository.existsByEmail.mockResolvedValue(false);
+      userRepository.save.mockResolvedValue(createSavedUser());
+      configService.get.mockImplementation((key: string, defaultValue?: unknown) =>
+        key in mockConfig ? mockConfig[key] : defaultValue,
+      );
+      jwtService.sign.mockReturnValueOnce('verification-token');
       matomoService.trackUserRegistration.mockResolvedValue(undefined);
 
       // Act
       await service.execute(command);
 
       // Assert
-      expect(eventBus.publish).toHaveBeenCalledTimes(mockUser.domainEvents.length);
+      const publishedEvent = eventBus.publish.mock.calls[0][0];
+      expect(publishedEvent).toBeInstanceOf(UserCreatedEvent);
     });
 
     it('should normalize email to lowercase', async () => {
       // Arrange
       const command = new RegisterCommand('Test@Example.COM', 'Password123!', 'John', 'Doe');
-      const mockUser = createMockUser();
 
       userRepository.existsByEmail.mockResolvedValue(false);
-      userRepository.save.mockResolvedValue(mockUser);
-      configService.get.mockImplementation((key: string, defaultValue?: unknown) => {
-        const config: Record<string, string> = {
-          'jwt.verificationSecret': 'test-verification-secret',
-          'jwt.verificationExpiresIn': '7d',
-          'jwt.secret': 'test-secret',
-          'jwt.expiresIn': '15m',
-          'jwt.refreshSecret': 'test-refresh-secret',
-          'jwt.refreshExpiresIn': '7d',
-        };
-        return key in config ? config[key] : defaultValue;
-      });
+      userRepository.save.mockResolvedValue(createSavedUser());
+      configService.get.mockImplementation((key: string, defaultValue?: unknown) =>
+        key in mockConfig ? mockConfig[key] : defaultValue,
+      );
       jwtService.sign.mockReturnValue('token');
       matomoService.trackUserRegistration.mockResolvedValue(undefined);
 
@@ -234,21 +199,12 @@ describe('RegisterService', () => {
     it('should hash the password before saving', async () => {
       // Arrange
       const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe');
-      const mockUser = createMockUser();
 
       userRepository.existsByEmail.mockResolvedValue(false);
-      userRepository.save.mockResolvedValue(mockUser);
-      configService.get.mockImplementation((key: string, defaultValue?: unknown) => {
-        const config: Record<string, string> = {
-          'jwt.verificationSecret': 'test-verification-secret',
-          'jwt.verificationExpiresIn': '7d',
-          'jwt.secret': 'test-secret',
-          'jwt.expiresIn': '15m',
-          'jwt.refreshSecret': 'test-refresh-secret',
-          'jwt.refreshExpiresIn': '7d',
-        };
-        return key in config ? config[key] : defaultValue;
-      });
+      userRepository.save.mockResolvedValue(createSavedUser());
+      configService.get.mockImplementation((key: string, defaultValue?: unknown) =>
+        key in mockConfig ? mockConfig[key] : defaultValue,
+      );
       jwtService.sign.mockReturnValue('token');
       matomoService.trackUserRegistration.mockResolvedValue(undefined);
 
@@ -263,21 +219,12 @@ describe('RegisterService', () => {
     it('should create user with correct data', async () => {
       // Arrange
       const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe');
-      const mockUser = createMockUser();
 
       userRepository.existsByEmail.mockResolvedValue(false);
-      userRepository.save.mockResolvedValue(mockUser);
-      configService.get.mockImplementation((key: string, defaultValue?: unknown) => {
-        const config: Record<string, string> = {
-          'jwt.verificationSecret': 'test-verification-secret',
-          'jwt.verificationExpiresIn': '7d',
-          'jwt.secret': 'test-secret',
-          'jwt.expiresIn': '15m',
-          'jwt.refreshSecret': 'test-refresh-secret',
-          'jwt.refreshExpiresIn': '7d',
-        };
-        return key in config ? config[key] : defaultValue;
-      });
+      userRepository.save.mockResolvedValue(createSavedUser());
+      configService.get.mockImplementation((key: string, defaultValue?: unknown) =>
+        key in mockConfig ? mockConfig[key] : defaultValue,
+      );
       jwtService.sign.mockReturnValue('token');
       matomoService.trackUserRegistration.mockResolvedValue(undefined);
 
@@ -289,32 +236,6 @@ describe('RegisterService', () => {
       expect(savedUser.email.value).toBe('test@example.com');
       expect(savedUser.firstName).toBe('John');
       expect(savedUser.lastName).toBe('Doe');
-    });
-
-    it('should use default expiresIn when config is not set', async () => {
-      // Arrange
-      const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe');
-      const mockUser = createMockUser();
-
-      userRepository.existsByEmail.mockResolvedValue(false);
-      userRepository.save.mockResolvedValue(mockUser);
-      configService.get.mockImplementation((key: string) => {
-        const config: Record<string, string | undefined> = {
-          'jwt.secret': 'test-secret',
-          'jwt.expiresIn': undefined, // No config set
-          'jwt.refreshSecret': 'test-refresh-secret',
-          'jwt.refreshExpiresIn': '7d',
-        };
-        return config[key];
-      });
-      jwtService.sign.mockReturnValue('token');
-      matomoService.trackUserRegistration.mockResolvedValue(undefined);
-
-      // Act
-      const result = await service.execute(command);
-
-      // Assert
-      expect(result.expiresIn).toBe('15m');
     });
   });
 });

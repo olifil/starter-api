@@ -32,14 +32,8 @@ describe('AuthHttpController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthHttpController],
       providers: [
-        {
-          provide: CommandBus,
-          useValue: mockCommandBus,
-        },
-        {
-          provide: QueryBus,
-          useValue: mockQueryBus,
-        },
+        { provide: CommandBus, useValue: mockCommandBus },
+        { provide: QueryBus, useValue: mockQueryBus },
       ],
     }).compile();
 
@@ -53,7 +47,7 @@ describe('AuthHttpController', () => {
   });
 
   describe('register', () => {
-    it('should register a new user and return tokens', async () => {
+    it('should register a new user and return void (no tokens)', async () => {
       // Arrange
       const dto: RegisterDto = {
         email: 'test@example.com',
@@ -61,7 +55,7 @@ describe('AuthHttpController', () => {
         firstName: 'John',
         lastName: 'Doe',
       };
-      commandBus.execute.mockResolvedValue(mockLoginResponse);
+      commandBus.execute.mockResolvedValue(undefined);
 
       // Act
       const result = await controller.register(dto);
@@ -76,7 +70,7 @@ describe('AuthHttpController', () => {
           lastName: 'Doe',
         }),
       );
-      expect(result).toEqual(mockLoginResponse);
+      expect(result).toBeUndefined();
     });
 
     it('should pass all fields from DTO to command', async () => {
@@ -87,7 +81,7 @@ describe('AuthHttpController', () => {
         firstName: 'Jane',
         lastName: 'Smith',
       };
-      commandBus.execute.mockResolvedValue(mockLoginResponse);
+      commandBus.execute.mockResolvedValue(undefined);
 
       // Act
       await controller.register(dto);
@@ -98,30 +92,6 @@ describe('AuthHttpController', () => {
       expect(executedCommand.password).toBe('SecurePass123!');
       expect(executedCommand.firstName).toBe('Jane');
       expect(executedCommand.lastName).toBe('Smith');
-    });
-
-    it('should return LoginResponseDto with tokens', async () => {
-      // Arrange
-      const dto: RegisterDto = {
-        email: 'test@example.com',
-        password: 'Password123!',
-        firstName: 'John',
-        lastName: 'Doe',
-      };
-      const customResponse: LoginResponseDto = {
-        accessToken: 'custom-access-token',
-        refreshToken: 'custom-refresh-token',
-        expiresIn: '30m',
-      };
-      commandBus.execute.mockResolvedValue(customResponse);
-
-      // Act
-      const result = await controller.register(dto);
-
-      // Assert
-      expect(result.accessToken).toBe('custom-access-token');
-      expect(result.refreshToken).toBe('custom-refresh-token');
-      expect(result.expiresIn).toBe('30m');
     });
   });
 
