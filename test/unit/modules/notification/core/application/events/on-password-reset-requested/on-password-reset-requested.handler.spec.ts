@@ -14,7 +14,7 @@ describe('OnPasswordResetRequestedHandler', () => {
 
     const mockConfigService = {
       get: jest.fn().mockImplementation((key: string, defaultValue?: unknown) => {
-        if (key === 'app.appUrl') return 'http://localhost:3000';
+        if (key === 'app.frontendUrl') return 'http://localhost:3000';
         return defaultValue;
       }),
     };

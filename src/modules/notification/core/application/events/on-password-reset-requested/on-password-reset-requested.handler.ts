@@ -17,7 +17,7 @@ export class OnPasswordResetRequestedHandler implements IEventHandler<PasswordRe
   async handle(event: PasswordResetRequestedEvent): Promise<void> {
     this.logger.log(`Sending password reset notification to user ${event.userId}`);
 
-    const appUrl = this.configService.get<string>('app.appUrl', 'http://localhost:3000');
+    const appUrl = this.configService.get<string>('app.frontendUrl', 'http://localhost:3000');
     const resetLink = `${appUrl}/reset-password?token=${event.resetToken}`;
 
     await this.commandBus.execute(
