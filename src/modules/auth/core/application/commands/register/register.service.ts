@@ -77,7 +77,10 @@ export class RegisterService implements ICommandHandler<RegisterCommand> {
     );
 
     // Publier les events de domaine en enrichissant UserCreatedEvent avec le token
-    for (const event of savedUser.domainEvents) {
+    // Note: on itère sur `user` (pas `savedUser`) car le repository retourne une nouvelle
+    // entité reconstruite depuis la DB (avec id fourni), ce qui empêche l'ajout automatique
+    // des domain events dans le constructeur de User.
+    for (const event of user.domainEvents) {
       if (event instanceof UserCreatedEvent) {
         this.eventBus.publish(
           new UserCreatedEvent(
@@ -92,7 +95,7 @@ export class RegisterService implements ICommandHandler<RegisterCommand> {
         this.eventBus.publish(event as IEvent);
       }
     }
-    savedUser.clearDomainEvents();
+    user.clearDomainEvents();
 
     // Générer les tokens JWT
     const payload: JwtPayload = {

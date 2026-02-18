@@ -1,6 +1,6 @@
 welcome:
   subject: "Bienvenue sur {appName}"
-  body: "Bonjour {firstName}, bienvenue sur {appName} ! Votre compte a été créé avec succès. Pour activer votre compte, veuillez vérifier votre adresse email en cliquant sur le lien suivant : {verificationLink}"
+  body: "<p>Bonjour {firstName}, bienvenue sur {appName} !</p><p>Votre compte a été créé avec succès. Pour activer votre compte, veuillez vérifier votre adresse email.</p><p style=\"text-align: center; margin: 32px 0;\"><a href=\"{verificationLink}\" style=\"background-color: #3b82f6; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 15px; display: inline-block;\">Vérifier</a></p>"
   sms: "Bienvenue {firstName} sur {appName} !"
   push: "Bienvenue sur {appName} !"
 
