@@ -15,6 +15,7 @@ import {
 } from '../../../domain/repositories/refresh-token.repository.interface';
 import { LoginResponseDto } from '../../dtos/login-response.dto';
 import { InvalidCredentialsException } from '../../exceptions/invalid-credentials.exception';
+import { EmailNotVerifiedException } from '../../exceptions/email-not-verified.exception';
 import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 import { computeExpiresAt } from '@shared/utils/parse-duration';
 
@@ -50,6 +51,11 @@ export class LoginHandler implements IQueryHandler<LoginQuery> {
     const isPasswordValid = await user.verifyPassword(query.password);
     if (!isPasswordValid) {
       throw new InvalidCredentialsException();
+    }
+
+    // Vérifier que l'email a été confirmé
+    if (!user.emailVerified) {
+      throw new EmailNotVerifiedException();
     }
 
     // Générer les tokens JWT
