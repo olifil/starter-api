@@ -1,5 +1,4 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { randomUUID } from 'crypto';
 import { CommandHandler, ICommandHandler, EventBus, IEvent } from '@nestjs/cqrs';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -12,19 +11,8 @@ import {
   IUserRepository,
   USER_REPOSITORY,
 } from '@modules/user/core/domain/repositories/user.repository.interface';
-import {
-  IRefreshTokenRepository,
-  REFRESH_TOKEN_REPOSITORY,
-} from '../../../domain/repositories/refresh-token.repository.interface';
 import { EmailAlreadyExistsException } from '@modules/user/core/application/exceptions/email-already-exists.exception';
-import { LoginResponseDto } from '../../dtos/login-response.dto';
 import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
-import { computeExpiresAt } from '@shared/utils/parse-duration';
-
-interface JwtPayload {
-  sub: string;
-  email: string;
-}
 
 @Injectable()
 @CommandHandler(RegisterCommand)
@@ -32,15 +20,13 @@ export class RegisterService implements ICommandHandler<RegisterCommand> {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
-    @Inject(REFRESH_TOKEN_REPOSITORY)
-    private readonly refreshTokenRepository: IRefreshTokenRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly eventBus: EventBus,
     private readonly matomoService: MatomoService,
   ) {}
 
-  async execute(command: RegisterCommand): Promise<LoginResponseDto> {
+  async execute(command: RegisterCommand): Promise<void> {
     const email = new Email(command.email);
 
     // Vérifier si l'email existe déjà
@@ -97,40 +83,7 @@ export class RegisterService implements ICommandHandler<RegisterCommand> {
     }
     user.clearDomainEvents();
 
-    // Générer les tokens JWT
-    const payload: JwtPayload = {
-      sub: savedUser.id,
-      email: savedUser.email.value,
-    };
-
-    const accessToken = this.jwtService.sign(payload, {
-      secret: this.configService.get('jwt.secret'),
-      expiresIn: this.configService.get('jwt.expiresIn'),
-    });
-
-    const refreshToken = this.jwtService.sign(
-      { ...payload, jti: randomUUID() },
-      {
-        secret: this.configService.get('jwt.refreshSecret'),
-        expiresIn: this.configService.get('jwt.refreshExpiresIn'),
-      },
-    );
-
-    // Persister le refresh token en DB
-    const refreshExpiresIn = this.configService.get<string>('jwt.refreshExpiresIn', '7d');
-    await this.refreshTokenRepository.save(
-      refreshToken,
-      savedUser.id,
-      computeExpiresAt(refreshExpiresIn),
-    );
-
     // Tracker l'inscription dans Matomo
     await this.matomoService.trackUserRegistration(savedUser.id);
-
-    return {
-      accessToken,
-      refreshToken,
-      expiresIn: this.configService.get('jwt.expiresIn') || '15m',
-    };
   }
 }

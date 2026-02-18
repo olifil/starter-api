@@ -33,17 +33,14 @@ export class AuthHttpController {
 
   @Post('register')
   @Throttle({ strict: {} })
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Créer un nouveau compte utilisateur' })
-  @ApiResponse({
-    status: 201,
-    description: 'Compte créé avec succès',
-    type: LoginResponseDto,
-  })
+  @ApiResponse({ status: 204, description: 'Compte créé avec succès' })
   @ApiResponse({ status: 400, description: 'Données invalides' })
   @ApiResponse({ status: 409, description: 'Email déjà utilisé' })
-  async register(@Body() dto: RegisterDto): Promise<LoginResponseDto> {
+  async register(@Body() dto: RegisterDto): Promise<void> {
     const command = new RegisterCommand(dto.email, dto.password, dto.firstName, dto.lastName);
-    return this.commandBus.execute(command);
+    await this.commandBus.execute(command);
   }
 
   @Post('login')
