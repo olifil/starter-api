@@ -196,4 +196,18 @@ describe('MeHttpController', () => {
       );
     });
   });
+
+  describe('deleteMyAccount', () => {
+    it('should delete current user account', async () => {
+      const currentUser = { userId: 'user-456' };
+
+      await controller.deleteMyAccount(currentUser);
+
+      expect(commandBus.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user-456',
+        }),
+      );
+    });
+  });
 });

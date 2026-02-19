@@ -1,9 +1,10 @@
 import { JwtAuthGuard } from '@modules/auth/interface/guards/jwt-auth.guard';
+import { DeleteUserCommand } from '@modules/user/core/application/commands/delete-user/delete-user.command';
 import { UpdateUserCommand } from '@modules/user/core/application/commands/update-user/update-user.command';
 import { UpdateUserDto } from '@modules/user/core/application/dtos/update-user.dto';
 import { UserProfileDto } from '@modules/user/core/application/dtos/user-profile.dto';
 import { GetUserQuery } from '@modules/user/core/application/queries/get-user/get-user.query';
-import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Put, UseGuards } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '@shared/decorators/current-user.decorator';
@@ -49,6 +50,17 @@ export class MeHttpController {
     @Body() dto: UpdateUserDto,
   ): Promise<UserProfileDto> {
     const command = new UpdateUserCommand(user.userId, dto.firstName, dto.lastName);
+    return this.commandBus.execute(command);
+  }
+
+  @Delete('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Supprimer mon compte utilisateur' })
+  @ApiResponse({ status: 204, description: 'Compte supprimé avec succès' })
+  @ApiResponse({ status: 401, description: 'Non authentifié' })
+  async deleteMyAccount(@CurrentUser() user: any): Promise<void> {
+    const command = new DeleteUserCommand(user.userId);
     return this.commandBus.execute(command);
   }
 }
