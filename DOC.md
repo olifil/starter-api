@@ -613,6 +613,28 @@ Le module User gère les **données de profil** des utilisateurs, séparé du mo
 | `PUT` | `/api/v1/users/:id` | ADMIN | Modifier un utilisateur |
 | `DELETE` | `/api/v1/users/:id` | ADMIN | Supprimer un utilisateur |
 
+### Suppression de compte
+
+Un utilisateur authentifié peut supprimer son propre compte via `DELETE /api/v1/users/me`.
+
+```http
+DELETE /api/v1/users/me
+Authorization: Bearer <token>
+```
+
+**Réponse :** `204 No Content`
+
+**Comportement :**
+1. L'identité de l'utilisateur est vérifiée via le JWT (`userId`)
+2. L'email et le prénom sont mémorisés avant toute suppression
+3. Un événement `UserDeletedEvent` est publié — ce qui déclenche l'envoi d'un email de confirmation à l'adresse mémorisée
+4. Le compte est supprimé de la base de données
+5. L'email de confirmation (`account-deleted`) est envoyé de façon asynchrone via BullMQ
+
+> **Ordre garanti** : l'événement est toujours publié *avant* la suppression en base, afin que le `SendNotificationService` puisse encore résoudre l'utilisateur et enqueuer le job avec son email. Une fois le job en file, la suppression n'impacte plus l'envoi.
+
+---
+
 ### Recherche utilisateurs (autocomplétion)
 
 Endpoint dédié à la recherche par autocomplétion, destiné aux interfaces d'administration.
@@ -1006,6 +1028,7 @@ Le module écoute automatiquement ces événements domaine :
 |-----------|------|-------|---------------------|
 | `UserCreatedEvent` | `welcome` | EMAIL | `firstName`, `lastName`, `appName`, `verificationLink` |
 | `PasswordResetRequestedEvent` | `password-reset` | EMAIL | `firstName`, `resetLink`, `expiresIn` |
+| `UserDeletedEvent` | `account-deleted` | EMAIL | `firstName`, `appName` |
 
 ### Catalogue des types de notifications
 
@@ -1048,6 +1071,22 @@ Confirmation de vérification d'email. Template défini, handler non câblé.
 | **Handler** | Aucun pré-câblé |
 
 Variables : `{firstName}`, `{appName}`
+
+---
+
+#### `account-deleted`
+
+Email de confirmation de suppression de compte, envoyé automatiquement après la clôture du compte.
+
+| | |
+|--|--|
+| **Déclencheur** | Automatique via `UserDeletedEvent` |
+| **Canaux** | EMAIL |
+| **Handler** | `on-user-deleted.handler.ts` |
+
+Variables : `{firstName}`, `{appName}`
+
+> L'email est envoyé à l'adresse mémorisée au moment de la demande de suppression, avant que le compte ne soit effectivement supprimé de la base.
 
 ---
 

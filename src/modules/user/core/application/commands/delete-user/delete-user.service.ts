@@ -23,9 +23,14 @@ export class DeleteUserService implements ICommandHandler<DeleteUserCommand> {
       throw new UserNotFoundException(command.userId);
     }
 
-    await this.userRepository.delete(command.userId);
+    // Mémoriser email et prénom avant suppression pour la notification
+    const email = user.email.value;
+    const firstName = user.firstName;
 
-    // Publier l'event de suppression
-    this.eventBus.publish(new UserDeletedEvent(command.userId));
+    // Publier l'event AVANT la suppression pour que la notification
+    // puisse résoudre l'utilisateur et enqueuer le job avec son email
+    this.eventBus.publish(new UserDeletedEvent(command.userId, email, firstName));
+
+    await this.userRepository.delete(command.userId);
   }
 }

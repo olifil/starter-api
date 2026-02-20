@@ -1,6 +1,8 @@
 export class UserDeletedEvent {
   constructor(
     public readonly userId: string,
+    public readonly email: string,
+    public readonly firstName: string,
     public readonly timestamp: Date = new Date(),
   ) {}
 }

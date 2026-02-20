@@ -16,6 +16,12 @@ account-verified:
   sms: "Your {appName} account is verified."
   push: "Your account has been verified successfully!"
 
+account-deleted:
+  subject: "Your {appName} account has been deleted"
+  body: "<p>Hello {firstName},</p><p>We confirm that your <strong>{appName}</strong> account has been successfully deleted. All your personal data has been removed from our systems.</p><p>We are sorry to see you go. If you change your mind, you can always create a new account.</p><p>See you around,<br/>The {appName} team</p>"
+  sms: "Your {appName} account has been deleted. All your data has been removed."
+  push: "Your account has been successfully deleted."
+
 generic:
   subject: "{subject}"
   body: "{message}"

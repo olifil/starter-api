@@ -16,6 +16,12 @@ account-verified:
   sms: "Votre compte {appName} est vérifié."
   push: "Votre compte a été vérifié avec succès !"
 
+account-deleted:
+  subject: "Votre compte {appName} a été supprimé"
+  body: "<p>Bonjour {firstName},</p><p>Nous confirmons que votre compte sur <strong>{appName}</strong> a bien été supprimé. L'ensemble de vos données personnelles a été effacé de nos systèmes.</p><p>Nous sommes désolés de vous voir partir. Si vous changez d'avis, vous pouvez toujours créer un nouveau compte.</p><p>À bientôt,<br/>L'équipe {appName}</p>"
+  sms: "Votre compte {appName} a bien été supprimé. Toutes vos données ont été effacées."
+  push: "Votre compte a été supprimé avec succès."
+
 generic:
   subject: "{subject}"
   body: "{message}"

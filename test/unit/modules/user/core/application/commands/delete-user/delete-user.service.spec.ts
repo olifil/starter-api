@@ -87,23 +87,34 @@ describe('DeleteUserService', () => {
       expect(userRepository.delete).not.toHaveBeenCalled();
     });
 
-    it('should publish UserDeletedEvent after deletion', async () => {
+    it('should publish UserDeletedEvent with email and firstName before deletion', async () => {
       // Arrange
       const command = new DeleteUserCommand('123');
+      const callOrder: string[] = [];
 
       userRepository.findById.mockResolvedValue(mockUser);
-      userRepository.delete.mockResolvedValue(undefined);
+      eventBus.publish.mockImplementation(() => {
+        callOrder.push('publish');
+        return undefined;
+      });
+      userRepository.delete.mockImplementation(async () => {
+        callOrder.push('delete');
+      });
 
       // Act
       await service.execute(command);
 
-      // Assert
-      expect(eventBus.publish).toHaveBeenCalledWith(expect.any(UserDeletedEvent));
+      // Assert — event contient email et firstName
       expect(eventBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: '123',
+          email: 'test@example.com',
+          firstName: 'John',
         }),
       );
+
+      // Assert — event publié AVANT la suppression
+      expect(callOrder).toEqual(['publish', 'delete']);
     });
 
     it('should verify user exists before attempting deletion', async () => {
