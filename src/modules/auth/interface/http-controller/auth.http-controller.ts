@@ -24,7 +24,6 @@ import { LoginQuery } from '../../core/application/queries/login/login.query';
 @Controller('auth')
 @ApiTags('Authentication')
 @Public()
-@SkipThrottle({ strict: true })
 export class AuthHttpController {
   constructor(
     private readonly commandBus: CommandBus,
@@ -65,6 +64,7 @@ export class AuthHttpController {
   }
 
   @Post('refresh')
+  @SkipThrottle({ strict: true })
   @ApiOperation({
     summary: 'Échanger un refresh token contre un nouveau couple access/refresh token',
   })
@@ -89,6 +89,7 @@ export class AuthHttpController {
   }
 
   @Post('reset-password')
+  @SkipThrottle({ strict: true })
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Réinitialiser le mot de passe avec un token' })
   @ApiResponse({ status: 204, description: 'Mot de passe réinitialisé' })
@@ -98,6 +99,7 @@ export class AuthHttpController {
   }
 
   @Post('verify-email')
+  @SkipThrottle({ strict: true })
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: "Vérifier l'adresse email avec le token reçu par email" })
   @ApiResponse({ status: 204, description: 'Email vérifié avec succès' })
@@ -108,6 +110,7 @@ export class AuthHttpController {
 
   @Post('logout')
   @SetMetadata(IS_PUBLIC_KEY, false)
+  @SkipThrottle({ strict: true })
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Se déconnecter et révoquer les refresh tokens' })
@@ -119,6 +122,7 @@ export class AuthHttpController {
 
   @Post('revoke')
   @SetMetadata(IS_PUBLIC_KEY, false)
+  @SkipThrottle({ strict: true })
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth('access-token')
   @ApiOperation({

@@ -8,6 +8,7 @@ describe('RegisterDto', () => {
     dto.password = 'Password123!';
     dto.firstName = 'John';
     dto.lastName = 'Doe';
+    dto.termsAccepted = true;
     return dto;
   };
 
@@ -225,6 +226,48 @@ describe('RegisterDto', () => {
     });
   });
 
+  describe('termsAccepted validation', () => {
+    it('should pass with termsAccepted = true', async () => {
+      // Arrange
+      const dto = createValidDto();
+      dto.termsAccepted = true;
+
+      // Act
+      const errors = await validate(dto);
+
+      // Assert
+      expect(errors).toHaveLength(0);
+    });
+
+    it('should fail when termsAccepted is false', async () => {
+      // Arrange
+      const dto = createValidDto();
+      dto.termsAccepted = false;
+
+      // Act
+      const errors = await validate(dto);
+
+      // Assert
+      expect(errors.length).toBeGreaterThan(0);
+      const termsError = errors.find((e) => e.property === 'termsAccepted');
+      expect(termsError?.constraints?.equals).toBeDefined();
+    });
+
+    it('should fail when termsAccepted is missing', async () => {
+      // Arrange
+      const dto = createValidDto();
+      (dto as Partial<RegisterDto>).termsAccepted = undefined;
+
+      // Act
+      const errors = await validate(dto);
+
+      // Assert
+      expect(errors.length).toBeGreaterThan(0);
+      const termsError = errors.find((e) => e.property === 'termsAccepted');
+      expect(termsError).toBeDefined();
+    });
+  });
+
   describe('complete validation', () => {
     it('should fail with multiple validation errors', async () => {
       // Arrange
@@ -233,12 +276,13 @@ describe('RegisterDto', () => {
       dto.password = 'weak';
       dto.firstName = '';
       dto.lastName = '';
+      // termsAccepted not set → also fails
 
       // Act
       const errors = await validate(dto);
 
       // Assert
-      expect(errors.length).toBe(4); // All 4 fields should have errors
+      expect(errors.length).toBe(5); // email, password, firstName, lastName, termsAccepted
     });
   });
 });
