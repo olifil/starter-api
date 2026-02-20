@@ -5,6 +5,7 @@ import { UserNotFoundException } from '@modules/user/core/application/exceptions
 import { InvalidCredentialsException } from '@modules/auth/core/application/exceptions/invalid-credentials.exception';
 import { InvalidRefreshTokenException } from '@modules/auth/core/application/exceptions/invalid-refresh-token.exception';
 import { EmailNotVerifiedException } from '@modules/auth/core/application/exceptions/email-not-verified.exception';
+import { TermsNotAcceptedException } from '@modules/auth/core/application/exceptions/terms-not-accepted.exception';
 
 describe('DomainExceptionFilter', () => {
   let filter: DomainExceptionFilter;
@@ -146,6 +147,22 @@ describe('DomainExceptionFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith({
         statusCode: HttpStatus.FORBIDDEN,
         message: exception.message,
+        timestamp: expect.any(String),
+      });
+    });
+
+    it('should handle TermsNotAcceptedException with 422 status', () => {
+      // Arrange
+      const exception = new TermsNotAcceptedException();
+
+      // Act
+      filter.catch(exception, mockArgumentsHost);
+
+      // Assert
+      expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.UNPROCESSABLE_ENTITY);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        message: "L'acceptation des conditions générales d'utilisation est obligatoire",
         timestamp: expect.any(String),
       });
     });

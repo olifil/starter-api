@@ -12,6 +12,7 @@ import {
   USER_REPOSITORY,
 } from '@modules/user/core/domain/repositories/user.repository.interface';
 import { EmailAlreadyExistsException } from '@modules/user/core/application/exceptions/email-already-exists.exception';
+import { TermsNotAcceptedException } from '@modules/auth/core/application/exceptions/terms-not-accepted.exception';
 import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 @Injectable()
@@ -27,6 +28,11 @@ export class RegisterService implements ICommandHandler<RegisterCommand> {
   ) {}
 
   async execute(command: RegisterCommand): Promise<void> {
+    // Vérifier l'acceptation des CGU
+    if (!command.termsAccepted) {
+      throw new TermsNotAcceptedException();
+    }
+
     const email = new Email(command.email);
 
     // Vérifier si l'email existe déjà

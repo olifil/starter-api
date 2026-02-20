@@ -14,6 +14,7 @@ import { InvalidResetTokenException } from '@modules/auth/core/application/excep
 import { InvalidVerificationTokenException } from '@modules/auth/core/application/exceptions/invalid-verification-token.exception';
 import { InvalidRefreshTokenException } from '@modules/auth/core/application/exceptions/invalid-refresh-token.exception';
 import { EmailNotVerifiedException } from '@modules/auth/core/application/exceptions/email-not-verified.exception';
+import { TermsNotAcceptedException } from '@modules/auth/core/application/exceptions/terms-not-accepted.exception';
 import { NotificationNotFoundException } from '@modules/notification/core/application/exceptions/notification-not-found.exception';
 import { ChannelDisabledException } from '@modules/notification/core/application/exceptions/channel-disabled.exception';
 
@@ -64,6 +65,9 @@ export class DomainExceptionFilter implements ExceptionFilter {
       message = exception.message;
     } else if (exception instanceof EmailNotVerifiedException) {
       status = HttpStatus.FORBIDDEN;
+      message = exception.message;
+    } else if (exception instanceof TermsNotAcceptedException) {
+      status = HttpStatus.UNPROCESSABLE_ENTITY;
       message = exception.message;
     } else {
       // Log unexpected errors

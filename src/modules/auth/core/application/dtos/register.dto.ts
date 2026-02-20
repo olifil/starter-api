@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { Equals, IsBoolean, IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsStrongPassword } from '@shared/validation/password.validator';
 
@@ -33,4 +33,12 @@ export class RegisterDto {
   @IsNotEmpty({ message: 'Nom requis' })
   @MaxLength(50, { message: 'Le nom ne peut pas dépasser 50 caractères' })
   lastName!: string;
+
+  @ApiProperty({
+    example: true,
+    description: "Acceptation des conditions générales d'utilisation (obligatoire)",
+  })
+  @IsBoolean({ message: "L'acceptation des CGU doit être un booléen" })
+  @Equals(true, { message: "L'acceptation des conditions générales d'utilisation est obligatoire" })
+  termsAccepted!: boolean;
 }

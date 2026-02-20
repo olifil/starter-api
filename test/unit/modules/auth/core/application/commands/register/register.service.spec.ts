@@ -13,6 +13,7 @@ import { Email } from '@modules/user/core/domain/value-objects/email.vo';
 import { HashedPassword } from '@modules/user/core/domain/value-objects/hashed-password.vo';
 import { UserCreatedEvent } from '@modules/user/core/domain/events/user-created.event';
 import { EmailAlreadyExistsException } from '@modules/user/core/application/exceptions/email-already-exists.exception';
+import { TermsNotAcceptedException } from '@modules/auth/core/application/exceptions/terms-not-accepted.exception';
 import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 describe('RegisterService', () => {
@@ -89,7 +90,7 @@ describe('RegisterService', () => {
   describe('execute', () => {
     it('should successfully register a new user and return void', async () => {
       // Arrange
-      const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe');
+      const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe', true);
 
       userRepository.existsByEmail.mockResolvedValue(false);
       userRepository.save.mockResolvedValue(createSavedUser());
@@ -117,9 +118,20 @@ describe('RegisterService', () => {
       expect(result).toBeUndefined();
     });
 
+    it('should throw TermsNotAcceptedException when termsAccepted is false', async () => {
+      // Arrange
+      const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe', false);
+
+      // Act & Assert
+      await expect(service.execute(command)).rejects.toThrow(TermsNotAcceptedException);
+      expect(userRepository.existsByEmail).not.toHaveBeenCalled();
+      expect(userRepository.save).not.toHaveBeenCalled();
+      expect(jwtService.sign).not.toHaveBeenCalled();
+    });
+
     it('should throw EmailAlreadyExistsException when email is already taken', async () => {
       // Arrange
-      const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe');
+      const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe', true);
       userRepository.existsByEmail.mockResolvedValue(true);
 
       // Act & Assert
@@ -130,7 +142,7 @@ describe('RegisterService', () => {
 
     it('should publish a UserCreatedEvent enriched with the verification token', async () => {
       // Arrange
-      const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe');
+      const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe', true);
 
       userRepository.existsByEmail.mockResolvedValue(false);
       userRepository.save.mockResolvedValue(createSavedUser());
@@ -157,7 +169,7 @@ describe('RegisterService', () => {
 
     it('should publish a UserCreatedEvent that is a UserCreatedEvent instance', async () => {
       // Arrange
-      const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe');
+      const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe', true);
 
       userRepository.existsByEmail.mockResolvedValue(false);
       userRepository.save.mockResolvedValue(createSavedUser());
@@ -177,7 +189,7 @@ describe('RegisterService', () => {
 
     it('should normalize email to lowercase', async () => {
       // Arrange
-      const command = new RegisterCommand('Test@Example.COM', 'Password123!', 'John', 'Doe');
+      const command = new RegisterCommand('Test@Example.COM', 'Password123!', 'John', 'Doe', true);
 
       userRepository.existsByEmail.mockResolvedValue(false);
       userRepository.save.mockResolvedValue(createSavedUser());
@@ -198,7 +210,7 @@ describe('RegisterService', () => {
 
     it('should hash the password before saving', async () => {
       // Arrange
-      const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe');
+      const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe', true);
 
       userRepository.existsByEmail.mockResolvedValue(false);
       userRepository.save.mockResolvedValue(createSavedUser());
@@ -218,7 +230,7 @@ describe('RegisterService', () => {
 
     it('should create user with correct data', async () => {
       // Arrange
-      const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe');
+      const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe', true);
 
       userRepository.existsByEmail.mockResolvedValue(false);
       userRepository.save.mockResolvedValue(createSavedUser());

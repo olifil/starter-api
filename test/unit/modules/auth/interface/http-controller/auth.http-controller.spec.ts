@@ -54,6 +54,7 @@ describe('AuthHttpController', () => {
         password: 'Password123!',
         firstName: 'John',
         lastName: 'Doe',
+        termsAccepted: true,
       };
       commandBus.execute.mockResolvedValue(undefined);
 
@@ -68,6 +69,7 @@ describe('AuthHttpController', () => {
           password: 'Password123!',
           firstName: 'John',
           lastName: 'Doe',
+          termsAccepted: true,
         }),
       );
       expect(result).toBeUndefined();
@@ -80,6 +82,7 @@ describe('AuthHttpController', () => {
         password: 'SecurePass123!',
         firstName: 'Jane',
         lastName: 'Smith',
+        termsAccepted: true,
       };
       commandBus.execute.mockResolvedValue(undefined);
 
@@ -92,6 +95,7 @@ describe('AuthHttpController', () => {
       expect(executedCommand.password).toBe('SecurePass123!');
       expect(executedCommand.firstName).toBe('Jane');
       expect(executedCommand.lastName).toBe('Smith');
+      expect(executedCommand.termsAccepted).toBe(true);
     });
   });
 

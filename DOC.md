@@ -158,7 +158,7 @@ curl http://localhost:3000/health
 # Créer un compte
 curl -X POST http://localhost:3000/api/v1/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"Test1234!","firstName":"Jean","lastName":"Dupont"}'
+  -d '{"email":"test@example.com","password":"Test1234!","firstName":"Jean","lastName":"Dupont","termsAccepted":true}'
 ```
 
 ---
@@ -447,10 +447,11 @@ Appliquée via :
 ### Flux : Inscription
 
 ```
-POST /api/v1/auth/register  { email, password, firstName, lastName }
+POST /api/v1/auth/register  { email, password, firstName, lastName, termsAccepted }
          │
          ▼
 RegisterService
+  ├── Vérifie termsAccepted === true → 422 TermsNotAcceptedException si false
   ├── Valide l'email (value object Email)
   ├── Hashe le mot de passe (bcrypt via HashedPassword)
   ├── Crée l'entité User → émet UserCreatedEvent
@@ -2454,7 +2455,7 @@ git add prisma/       # Commiter les fichiers de migration
 
 | Méthode | Route | Corps | Réponse | Accès |
 |---------|-------|-------|---------|-------|
-| POST | `/register` | `{email, password, firstName, lastName}` | `204` | Public |
+| POST | `/register` | `{email, password, firstName, lastName, termsAccepted}` | `204` | Public |
 | POST | `/login` | `{email, password}` | `{accessToken, refreshToken, expiresIn}` | Public |
 | POST | `/logout` | `{refreshToken}` | `204` | Authentifié |
 | POST | `/refresh` | `{refreshToken}` | `{accessToken, refreshToken}` | Public |
@@ -2503,7 +2504,7 @@ git add prisma/       # Commiter les fichiers de migration
 | `404` | Ressource introuvable |
 | `409` | Conflit (ex: email déjà utilisé) |
 | `429` | Trop de requêtes (rate limiting) |
-| `422` | Canal désactivé |
+| `422` | Canal désactivé ou CGU non acceptées |
 | `500` | Erreur serveur interne |
 
 ---

@@ -38,8 +38,15 @@ export class AuthHttpController {
   @ApiResponse({ status: 204, description: 'Compte créé avec succès' })
   @ApiResponse({ status: 400, description: 'Données invalides' })
   @ApiResponse({ status: 409, description: 'Email déjà utilisé' })
+  @ApiResponse({ status: 422, description: 'CGU non acceptées' })
   async register(@Body() dto: RegisterDto): Promise<void> {
-    const command = new RegisterCommand(dto.email, dto.password, dto.firstName, dto.lastName);
+    const command = new RegisterCommand(
+      dto.email,
+      dto.password,
+      dto.firstName,
+      dto.lastName,
+      dto.termsAccepted,
+    );
     await this.commandBus.execute(command);
   }
 
