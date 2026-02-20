@@ -458,10 +458,33 @@ RegisterService
   ├── Génère un JWT de vérification email (type: 'email-verification')
   ├── Enrichit UserCreatedEvent avec verificationToken
   ├── Publie UserCreatedEvent → OnUserCreatedHandler envoie l'email de bienvenue
-  ├── Génère l'access token (JWT_SECRET)
-  ├── Génère le refresh token (JWT_REFRESH_SECRET) et le persiste en base
-  └── Retourne { accessToken, refreshToken, user }
+  └── Retourne 204 No Content
 ```
+
+> **Note** : l'inscription ne retourne **aucun token**. L'utilisateur doit vérifier son email via le lien envoyé, puis se connecter manuellement.
+
+### Flux : Connexion
+
+```
+POST /api/v1/auth/login  { email, password }
+         │
+         ▼
+LoginHandler
+  ├── Crée un value object Email (normalisation lowercase)
+  ├── Cherche l'utilisateur par email
+  │     └── Si inexistant → 401 InvalidCredentialsException
+  ├── Vérifie le mot de passe (bcrypt)
+  │     └── Si incorrect → 401 InvalidCredentialsException
+  ├── Vérifie emailVerified === true
+  │     └── Si false → 403 EmailNotVerifiedException
+  ├── Génère l'access token (JWT_SECRET, jwt.expiresIn)
+  ├── Génère le refresh token avec jti UUID (JWT_REFRESH_SECRET)
+  ├── Persiste le refresh token en base
+  ├── Trace l'événement dans Matomo (trackUserLogin)
+  └── Retourne { accessToken, refreshToken, expiresIn }
+```
+
+> **Ordre des vérifications** : le mot de passe est validé **avant** l'email. Un attaquant ne peut pas distinguer "email inexistant" de "mauvais mot de passe" ; et un utilisateur avec un mauvais mot de passe ET un email non vérifié recevra une `InvalidCredentialsException`, pas une `EmailNotVerifiedException`.
 
 ### Flux : Refresh Token (rotation)
 
@@ -1331,7 +1354,7 @@ async function unsubscribeFromPush(accessToken) {
 | Safari ≥ 16 (macOS/iOS) | ✅ |
 | IE / Opera Mini | ❌ |
 
-> Le Service Worker et l'API Push ne fonctionnent qu'en **HTTPS** (ou `localhost` en développement). S'assurer que `APP_URL` est bien en `https://` en production.
+> Le Service Worker et l'API Push ne fonctionnent qu'en **HTTPS** (ou `localhost` en développement). S'assurer que `FRONTEND_URL` est bien en `https://` en production.
 
 ---
 
@@ -2236,7 +2259,7 @@ MAJOR.MINOR.PATCH
 
 ```
 test/
-├── unit/                       # 76 suites, 577 tests
+├── unit/                       # 81 suites, 628 tests
 │   ├── modules/
 │   │   ├── auth/               # commands, queries, dtos, guards, repositories
 │   │   ├── user/               # entities, VOs, commands, queries, dtos, controllers
@@ -2392,8 +2415,8 @@ git add prisma/       # Commiter les fichiers de migration
 
 | Méthode | Route | Corps | Réponse | Accès |
 |---------|-------|-------|---------|-------|
-| POST | `/register` | `{email, password, firstName, lastName}` | `{accessToken, refreshToken, user}` | Public |
-| POST | `/login` | `{email, password}` | `{accessToken, refreshToken, user}` | Public |
+| POST | `/register` | `{email, password, firstName, lastName}` | `204` | Public |
+| POST | `/login` | `{email, password}` | `{accessToken, refreshToken, expiresIn}` | Public |
 | POST | `/logout` | `{refreshToken}` | `204` | Authentifié |
 | POST | `/refresh` | `{refreshToken}` | `{accessToken, refreshToken}` | Public |
 | POST | `/forgot-password` | `{email}` | `204` | Public |
@@ -2455,8 +2478,7 @@ git add prisma/       # Commiter les fichiers de migration
 | `NODE_ENV` | `development` | Environnement (`development`, `production`, `test`) |
 | `PORT` | `3000` | Port d'écoute |
 | `API_PREFIX` | `api/v1` | Préfixe des routes |
-| `APP_URL` | `http://localhost:3000` | URL publique du backend |
-| `FRONTEND_URL` | `http://localhost:4200` | URL publique du frontend |
+| `FRONTEND_URL` | `http://localhost:4200` | URL publique du frontend (liens de reset, vérification email…) |
 | `EMAIL_VERIFICATION_PATH` | `/verify-email` | Chemin frontend pour la vérification email |
 | `CONTACT_EMAIL` | — | Adresse de réception des messages de contact |
 | `ENABLE_CORS` | `true` | Activer CORS |
