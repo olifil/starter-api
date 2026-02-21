@@ -90,7 +90,7 @@ describe('Notification (Integration)', () => {
         .post('/notifications/send')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          userId,
+          userIds: [userId],
           type: 'welcome',
           channels: [NotificationChannel.WEBSOCKET],
           variables: { firstName: 'User' },
@@ -116,7 +116,7 @@ describe('Notification (Integration)', () => {
         .post('/notifications/send')
         .set('Authorization', `Bearer ${userToken}`)
         .send({
-          userId,
+          userIds: [userId],
           type: 'welcome',
           channels: [NotificationChannel.WEBSOCKET],
         })
@@ -127,7 +127,7 @@ describe('Notification (Integration)', () => {
       await request(app.getHttpServer())
         .post('/notifications/send')
         .send({
-          userId,
+          userIds: [userId],
           type: 'welcome',
           channels: [NotificationChannel.WEBSOCKET],
         })
@@ -139,7 +139,7 @@ describe('Notification (Integration)', () => {
         .post('/notifications/send')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          userId,
+          userIds: [userId],
           type: 'welcome',
           channels: ['INVALID_CHANNEL'],
         })

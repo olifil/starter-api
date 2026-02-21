@@ -102,13 +102,14 @@ describe('RBAC Authorization (Integration)', () => {
         password: 'Password123!',
         firstName: 'New',
         lastName: 'User',
+        termsAccepted: true,
       });
 
       expect(response.status).not.toBe(401);
-      expect([201, 409]).toContain(response.status); // 201 Created ou 409 si email existe
+      expect([204, 409]).toContain(response.status); // 204 No Content ou 409 si email existe
 
       // Nettoyer
-      if (response.status === 201) {
+      if (response.status === 204) {
         await prisma.user.delete({
           where: { email: 'newuser@test.com' },
         });

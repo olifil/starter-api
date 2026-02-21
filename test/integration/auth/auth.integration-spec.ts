@@ -4,6 +4,7 @@ import request from 'supertest';
 import { AppModule } from '../../../src/app.module';
 import { PrismaService } from '../../../src/database/prisma.service';
 import { DomainExceptionFilter } from '../../../src/shared/filters/domain-exception.filter';
+import { registerAndLogin } from '../helpers';
 
 describe('Auth (Integration)', () => {
   let app: INestApplication;
@@ -34,30 +35,20 @@ describe('Auth (Integration)', () => {
   });
 
   describe('POST /auth/register', () => {
-    it('should register a new user and return tokens', async () => {
+    it('should register a new user (204 no content)', async () => {
       // Arrange
       const registerDto = {
         email: 'newuser@example.com',
         password: 'Password123!',
         firstName: 'John',
         lastName: 'Doe',
+        termsAccepted: true,
       };
 
       // Act
-      const response = await request(app.getHttpServer())
-        .post('/auth/register')
-        .send(registerDto)
-        .expect(201);
+      await request(app.getHttpServer()).post('/auth/register').send(registerDto).expect(204);
 
-      // Assert
-      expect(response.body).toHaveProperty('accessToken');
-      expect(response.body).toHaveProperty('refreshToken');
-      expect(response.body).toHaveProperty('expiresIn');
-      expect(typeof response.body.accessToken).toBe('string');
-      expect(typeof response.body.refreshToken).toBe('string');
-      expect(response.body.accessToken.length).toBeGreaterThan(0);
-
-      // Vérifier que l'utilisateur a été créé
+      // Assert — vérifier que l'utilisateur a été créé en base
       const user = await prisma.user.findUnique({
         where: { email: 'newuser@example.com' },
       });
@@ -73,10 +64,11 @@ describe('Auth (Integration)', () => {
         password: 'Password123!',
         firstName: 'John',
         lastName: 'Doe',
+        termsAccepted: true,
       };
 
       // Premier enregistrement
-      await request(app.getHttpServer()).post('/auth/register').send(registerDto).expect(201);
+      await request(app.getHttpServer()).post('/auth/register').send(registerDto).expect(204);
 
       // Act - Tentative de réenregistrement avec le même email
       const response = await request(app.getHttpServer())
@@ -95,6 +87,7 @@ describe('Auth (Integration)', () => {
         password: 'Password123!',
         firstName: 'John',
         lastName: 'Doe',
+        termsAccepted: true,
       };
 
       // Act
@@ -114,6 +107,7 @@ describe('Auth (Integration)', () => {
         password: 'weak',
         firstName: 'John',
         lastName: 'Doe',
+        termsAccepted: true,
       };
 
       // Act
@@ -137,6 +131,20 @@ describe('Auth (Integration)', () => {
       await request(app.getHttpServer()).post('/auth/register').send(registerDto).expect(400);
     });
 
+    it('should return 400 when termsAccepted is false', async () => {
+      // Arrange
+      const registerDto = {
+        email: 'test@example.com',
+        password: 'Password123!',
+        firstName: 'John',
+        lastName: 'Doe',
+        termsAccepted: false,
+      };
+
+      // Act
+      await request(app.getHttpServer()).post('/auth/register').send(registerDto).expect(400);
+    });
+
     it('should normalize email to lowercase', async () => {
       // Arrange
       const registerDto = {
@@ -144,10 +152,11 @@ describe('Auth (Integration)', () => {
         password: 'Password123!',
         firstName: 'John',
         lastName: 'Doe',
+        termsAccepted: true,
       };
 
       // Act
-      await request(app.getHttpServer()).post('/auth/register').send(registerDto).expect(201);
+      await request(app.getHttpServer()).post('/auth/register').send(registerDto).expect(204);
 
       // Assert
       const user = await prisma.user.findUnique({
@@ -159,12 +168,17 @@ describe('Auth (Integration)', () => {
 
   describe('POST /auth/login', () => {
     beforeEach(async () => {
-      // Créer un utilisateur de test
+      // Créer un utilisateur de test et vérifier son email
       await request(app.getHttpServer()).post('/auth/register').send({
         email: 'testuser@example.com',
         password: 'Password123!',
         firstName: 'Test',
         lastName: 'User',
+        termsAccepted: true,
+      });
+      await prisma.user.update({
+        where: { email: 'testuser@example.com' },
+        data: { emailVerified: true, emailVerifiedAt: new Date() },
       });
     });
 
@@ -272,15 +286,15 @@ describe('Auth (Integration)', () => {
     let accessToken: string;
 
     beforeEach(async () => {
-      // Créer un utilisateur et récupérer le token
-      const response = await request(app.getHttpServer()).post('/auth/register').send({
+      // Créer un utilisateur et récupérer le token via register + login
+      const tokens = await registerAndLogin(app, {
         email: 'authuser@example.com',
         password: 'Password123!',
         firstName: 'Auth',
         lastName: 'User',
       });
 
-      accessToken = response.body.accessToken;
+      accessToken = tokens.accessToken;
     });
 
     it('should access protected route with valid token', async () => {

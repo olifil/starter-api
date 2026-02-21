@@ -45,13 +45,18 @@ describe('Auth Password Reset (Integration)', () => {
   });
 
   const registerUser = async (email = 'reset@example.com') => {
-    const response = await request(app.getHttpServer()).post('/auth/register').send({
+    await request(app.getHttpServer()).post('/auth/register').send({
       email,
       password: 'Password123!',
       firstName: 'Reset',
       lastName: 'Test',
+      termsAccepted: true,
     });
-    return response.body;
+    // Vérifier l'email pour permettre le login dans les tests
+    await prisma.user.update({
+      where: { email },
+      data: { emailVerified: true, emailVerifiedAt: new Date() },
+    });
   };
 
   const generateResetToken = (userId: string, email: string, options?: { expiresIn?: string }) => {

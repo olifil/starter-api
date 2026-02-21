@@ -39,13 +39,22 @@ describe('Auth Refresh Token (Integration)', () => {
   });
 
   const registerUser = async () => {
-    const response = await request(app.getHttpServer()).post('/auth/register').send({
+    await request(app.getHttpServer()).post('/auth/register').send({
       email: 'refresh@example.com',
       password: 'Password123!',
       firstName: 'Refresh',
       lastName: 'Test',
+      termsAccepted: true,
     });
-    return response.body;
+    // Vérifier l'email pour permettre le login dans les tests
+    await prisma.user.update({
+      where: { email: 'refresh@example.com' },
+      data: { emailVerified: true, emailVerifiedAt: new Date() },
+    });
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'refresh@example.com', password: 'Password123!' });
+    return loginResponse.body as { accessToken: string; refreshToken: string; expiresIn: string };
   };
 
   describe('POST /auth/refresh', () => {

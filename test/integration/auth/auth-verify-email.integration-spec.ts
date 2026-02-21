@@ -50,6 +50,7 @@ describe('Auth Verify Email (Integration)', () => {
       password: 'Password123!',
       firstName: 'Verify',
       lastName: 'Test',
+      termsAccepted: true,
     });
     return prisma.user.findUnique({ where: { email: 'verify@example.com' } });
   };

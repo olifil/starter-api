@@ -5,7 +5,7 @@ import { AppModule } from '../../../src/app.module';
 import { PrismaService } from '../../../src/database/prisma.service';
 import { DomainExceptionFilter } from '../../../src/shared/filters/domain-exception.filter';
 import { Role } from '@prisma/client';
-import { signToken } from '../helpers';
+import { signToken, registerAndLogin } from '../helpers';
 
 describe('User Profile (Integration)', () => {
   let app: INestApplication;
@@ -40,15 +40,15 @@ describe('User Profile (Integration)', () => {
   beforeEach(async () => {
     await prisma.user.deleteMany();
 
-    // Create a test user and authenticate
-    const response = await request(app.getHttpServer()).post('/auth/register').send({
+    // Create a test user and authenticate via register + login
+    const tokens = await registerAndLogin(app, {
       email: 'testuser@example.com',
       password: 'Password123!',
       firstName: 'John',
       lastName: 'Doe',
     });
 
-    authToken = response.body.accessToken;
+    authToken = tokens.accessToken;
 
     // Get user ID from database
     const user = await prisma.user.findUnique({
@@ -209,11 +209,12 @@ describe('User Profile (Integration)', () => {
   describe('DELETE /users/:id', () => {
     it('should delete user by id (admin)', async () => {
       // Create another user to delete
-      const otherUserResponse = await request(app.getHttpServer()).post('/auth/register').send({
+      await request(app.getHttpServer()).post('/auth/register').send({
         email: 'other@example.com',
         password: 'Password123!',
         firstName: 'Other',
         lastName: 'User',
+        termsAccepted: true,
       });
 
       const otherUser = await prisma.user.findUnique({
