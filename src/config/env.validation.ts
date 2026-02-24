@@ -197,7 +197,7 @@ class EnvironmentVariables {
   WS_ENABLED?: boolean;
 
   // Health monitoring
-  @Transform(({ value }: { value: unknown }) => value !== 'false')
+  @Transform(({ value }: { value: unknown }) => value !== 'false' && value !== false)
   @IsBoolean()
   @IsOptional()
   HEALTH_MONITOR_NOTIFICATIONS_ENABLED: boolean = true;
