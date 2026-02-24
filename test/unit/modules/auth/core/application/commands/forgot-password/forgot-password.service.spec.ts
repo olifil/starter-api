@@ -12,6 +12,7 @@ import { PasswordResetRequestedEvent } from '@modules/auth/core/domain/events/pa
 import { User } from '@modules/user/core/domain/entities/user.entity';
 import { Email } from '@modules/user/core/domain/value-objects/email.vo';
 import { HashedPassword } from '@modules/user/core/domain/value-objects/hashed-password.vo';
+import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 describe('ForgotPasswordService', () => {
   let service: ForgotPasswordService;
@@ -59,6 +60,7 @@ describe('ForgotPasswordService', () => {
         { provide: EventBus, useValue: mockEventBus },
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: MatomoService, useValue: { trackPasswordResetRequested: jest.fn() } },
       ],
     }).compile();
 

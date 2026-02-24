@@ -63,4 +63,100 @@ export class MatomoService {
       userId,
     });
   }
+
+  async trackUserLogout(userId: string): Promise<void> {
+    await this.trackEvent({
+      category: 'Auth',
+      action: 'Logout',
+      userId,
+    });
+  }
+
+  async trackLoginFailed(): Promise<void> {
+    await this.trackEvent({
+      category: 'Auth',
+      action: 'LoginFailed',
+    });
+  }
+
+  async trackEmailVerified(userId: string): Promise<void> {
+    await this.trackEvent({
+      category: 'Auth',
+      action: 'EmailVerified',
+      userId,
+    });
+  }
+
+  async trackPasswordResetRequested(): Promise<void> {
+    await this.trackEvent({
+      category: 'Auth',
+      action: 'PasswordResetRequested',
+    });
+  }
+
+  async trackPasswordResetCompleted(userId: string): Promise<void> {
+    await this.trackEvent({
+      category: 'Auth',
+      action: 'PasswordResetCompleted',
+      userId,
+    });
+  }
+
+  async trackTokenRefresh(userId: string): Promise<void> {
+    await this.trackEvent({
+      category: 'Auth',
+      action: 'TokenRefresh',
+      userId,
+    });
+  }
+
+  async trackUserProfileUpdated(userId: string): Promise<void> {
+    await this.trackEvent({
+      category: 'User',
+      action: 'ProfileUpdated',
+      userId,
+    });
+  }
+
+  async trackUserDeleted(userId: string): Promise<void> {
+    await this.trackEvent({
+      category: 'User',
+      action: 'Deleted',
+      userId,
+    });
+  }
+
+  async trackNotificationSent(userId: string, channel: string): Promise<void> {
+    await this.trackEvent({
+      category: 'Notification',
+      action: 'Sent',
+      name: channel,
+      userId,
+    });
+  }
+
+  async trackNotificationFailed(userId: string, channel: string): Promise<void> {
+    await this.trackEvent({
+      category: 'Notification',
+      action: 'Failed',
+      name: channel,
+      userId,
+    });
+  }
+
+  async trackNotificationPreferencesUpdated(userId: string): Promise<void> {
+    await this.trackEvent({
+      category: 'Notification',
+      action: 'PreferencesUpdated',
+      userId,
+    });
+  }
+
+  async trackNotificationMarkedAsRead(userId: string): Promise<void> {
+    await this.trackEvent({
+      category: 'Notification',
+      action: 'MarkedAsRead',
+      userId,
+    });
+  }
 }

@@ -86,6 +86,7 @@ describe('LoginHandler', () => {
 
     const mockMatomoService: Partial<MatomoService> = {
       trackUserLogin: jest.fn(),
+      trackLoginFailed: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

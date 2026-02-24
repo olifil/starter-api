@@ -9,6 +9,7 @@ import {
   USER_REPOSITORY,
 } from '@modules/user/core/domain/repositories/user.repository.interface';
 import { InvalidResetTokenException } from '../../exceptions/invalid-reset-token.exception';
+import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 interface ResetTokenPayload {
   sub: string;
@@ -26,6 +27,7 @@ export class ResetPasswordService implements ICommandHandler<ResetPasswordComman
     private readonly userRepository: IUserRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly matomoService: MatomoService,
   ) {}
 
   async execute(command: ResetPasswordCommand): Promise<void> {
@@ -54,6 +56,7 @@ export class ResetPasswordService implements ICommandHandler<ResetPasswordComman
     const newPassword = await HashedPassword.fromPlainPassword(command.newPassword);
     user.changePassword(newPassword);
     await this.userRepository.update(user);
+    await this.matomoService.trackPasswordResetCompleted(user.id);
 
     this.logger.log(`Password reset for user ${user.id}`);
   }

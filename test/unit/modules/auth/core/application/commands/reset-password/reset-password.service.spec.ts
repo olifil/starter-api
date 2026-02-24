@@ -11,6 +11,7 @@ import { InvalidResetTokenException } from '@modules/auth/core/application/excep
 import { User } from '@modules/user/core/domain/entities/user.entity';
 import { Email } from '@modules/user/core/domain/value-objects/email.vo';
 import { HashedPassword } from '@modules/user/core/domain/value-objects/hashed-password.vo';
+import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 describe('ResetPasswordService', () => {
   let service: ResetPasswordService;
@@ -54,6 +55,7 @@ describe('ResetPasswordService', () => {
         { provide: USER_REPOSITORY, useValue: mockUserRepository },
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: MatomoService, useValue: { trackPasswordResetCompleted: jest.fn() } },
       ],
     }).compile();
 

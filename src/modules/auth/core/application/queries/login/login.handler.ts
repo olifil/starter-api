@@ -50,6 +50,7 @@ export class LoginHandler implements IQueryHandler<LoginQuery> {
     // Vérifier le mot de passe
     const isPasswordValid = await user.verifyPassword(query.password);
     if (!isPasswordValid) {
+      await this.matomoService.trackLoginFailed();
       throw new InvalidCredentialsException();
     }
 

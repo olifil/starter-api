@@ -7,6 +7,7 @@ import {
 } from '../../../domain/repositories/user.repository.interface';
 import { UserNotFoundException } from '../../exceptions/user-not-found.exception';
 import { UserDeletedEvent } from '../../../domain/events/user-deleted.event';
+import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 @Injectable()
 @CommandHandler(DeleteUserCommand)
@@ -15,6 +16,7 @@ export class DeleteUserService implements ICommandHandler<DeleteUserCommand> {
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
     private readonly eventBus: EventBus,
+    private readonly matomoService: MatomoService,
   ) {}
 
   async execute(command: DeleteUserCommand): Promise<void> {
@@ -31,6 +33,7 @@ export class DeleteUserService implements ICommandHandler<DeleteUserCommand> {
     // puisse résoudre l'utilisateur et enqueuer le job avec son email
     this.eventBus.publish(new UserDeletedEvent(command.userId, email, firstName));
 
+    await this.matomoService.trackUserDeleted(command.userId);
     await this.userRepository.delete(command.userId);
   }
 }

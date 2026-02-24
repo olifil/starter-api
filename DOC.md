@@ -27,12 +27,13 @@
 **Partie IV — Infrastructure**
 - [12. Base de données](#12-base-de-données)
 - [13. Observabilité](#13-observabilité)
-- [14. Gestion des secrets (SOPS)](#14-gestion-des-secrets-sops)
+- [14. Analytics (Matomo)](#14-analytics-matomo)
+- [15. Gestion des secrets (SOPS)](#15-gestion-des-secrets-sops)
 
 **Partie V — Développement**
-- [15. Git workflow](#15-git-workflow)
-- [16. Tests](#16-tests)
-- [17. Commandes du projet (Makefile)](#17-commandes-du-projet-makefile)
+- [16. Git workflow](#16-git-workflow)
+- [17. Tests](#17-tests)
+- [18. Commandes du projet (Makefile)](#18-commandes-du-projet-makefile)
 
 **Annexes**
 - [A. Référence API complète](#a-référence-api-complète)
@@ -1980,7 +1981,80 @@ Configuration : `app.enableShutdownHooks()` dans `main.ts`.
 
 ---
 
-## 14. Gestion des secrets (SOPS)
+## 14. Analytics (Matomo)
+
+L'API intègre **Matomo** (analytics open source, auto-hébergé, RGPD-friendly) pour le suivi des événements métier. Le tracking est **facultatif** : si `MATOMO_URL` ou `MATOMO_SITE_ID` sont absents, il est silencieusement désactivé avec un log d'avertissement.
+
+### Architecture
+
+```
+MatomoModule (@Global)
+  └── MatomoService
+        ├── tracker: MatomoTracker | null   (null si désactivé)
+        ├── enabled: boolean
+        └── trackEvent(params)              (méthode générique)
+```
+
+`MatomoService` est déclaré `@Global()` : il est injectable dans tous les modules sans import explicite de `MatomoModule`. Il est initialisé au démarrage avec `MATOMO_URL` + `MATOMO_SITE_ID`.
+
+### Catalogue des événements trackés
+
+| Catégorie | Action | userId | Déclencheur |
+|-----------|--------|:------:|-------------|
+| `User` | `Register` | ✅ | Inscription réussie |
+| `User` | `Login` | ✅ | Connexion réussie |
+| `Auth` | `Logout` | ✅ | Déconnexion |
+| `Auth` | `LoginFailed` | ❌ | Mot de passe incorrect |
+| `Auth` | `EmailVerified` | ✅ | Vérification d'email |
+| `Auth` | `PasswordResetRequested` | ❌ | Demande de réinitialisation |
+| `Auth` | `PasswordResetCompleted` | ✅ | Réinitialisation effectuée |
+| `Auth` | `TokenRefresh` | ✅ | Renouvellement de token |
+| `User` | `ProfileUpdated` | ✅ | Modification du profil |
+| `User` | `Deleted` | ✅ | Suppression de compte |
+| `Notification` | `Sent` *(+ canal)* | ✅ | Notification envoyée (BullMQ) |
+| `Notification` | `Failed` *(+ canal)* | ✅ | Notification échouée |
+| `Notification` | `PreferencesUpdated` | ✅ | Mise à jour des préférences |
+| `Notification` | `MarkedAsRead` | ✅ | Notification marquée comme lue |
+
+> **Sécurité** : `LoginFailed` et `PasswordResetRequested` sont trackés **sans `userId`** pour ne pas confirmer l'existence d'un compte en cas d'attaque par énumération.
+
+Pour les notifications, le **canal** est passé en paramètre `name` (ex: `EMAIL`, `WEBSOCKET`) permettant de segmenter par canal dans Matomo.
+
+### Utilisation dans un service
+
+```typescript
+@Injectable()
+export class MyService {
+  constructor(private readonly matomoService: MatomoService) {}
+
+  async doSomething(userId: string): Promise<void> {
+    // ... logique métier ...
+    await this.matomoService.trackEvent({
+      category: 'MaCategorie',
+      action: 'MonAction',
+      userId,
+    });
+  }
+}
+```
+
+Les méthodes spécialisées (`trackUserLogin`, `trackUserLogout`, etc.) appellent toutes `trackEvent()` en interne. Les erreurs de tracking sont silencieuses (loguées, jamais propagées).
+
+### Configuration
+
+Voir [Annexe B → Matomo Analytics](#matomo-analytics-optionnel).
+
+Dès que `MATOMO_URL` et `MATOMO_SITE_ID` sont définis, le tracking s'active automatiquement. Le service est disponible dans `src/shared/infrastructure/analytics/matomo.service.ts`.
+
+```env
+MATOMO_URL=http://matomo.monapp.fr
+MATOMO_SITE_ID=1
+MATOMO_TOKEN=xxxxxxxxxxxx   # optionnel (API Matomo)
+```
+
+---
+
+## 15. Gestion des secrets (SOPS)
 
 ### Pourquoi SOPS ?
 
@@ -2123,7 +2197,7 @@ git status  # .env doit être dans "Untracked" ou "Ignored"
 
 # Partie V — Développement
 
-## 15. Git workflow
+## 16. Git workflow
 
 ### Stratégie de branches
 
@@ -2293,13 +2367,13 @@ MAJOR.MINOR.PATCH
 
 ---
 
-## 16. Tests
+## 17. Tests
 
 ### Structure des tests
 
 ```
 test/
-├── unit/                       # 81 suites, 628 tests
+├── unit/                       # 82 suites, 659 tests
 │   ├── modules/
 │   │   ├── auth/               # commands, queries, dtos, guards, repositories
 │   │   ├── user/               # entities, VOs, commands, queries, dtos, controllers
@@ -2342,7 +2416,7 @@ describe('SendContactEmailService', () => {
 
 ---
 
-## 17. Commandes du projet (Makefile)
+## 18. Commandes du projet (Makefile)
 
 ```bash
 make help           # Afficher toutes les commandes disponibles

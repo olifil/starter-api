@@ -9,6 +9,7 @@ import {
 } from '@modules/user/core/domain/repositories/user.repository.interface';
 import { InvalidVerificationTokenException } from '../../exceptions/invalid-verification-token.exception';
 import { AccountVerifiedEvent } from '../../../domain/events/account-verified.event';
+import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 interface VerificationTokenPayload {
   sub: string;
@@ -27,6 +28,7 @@ export class VerifyEmailService implements ICommandHandler<VerifyEmailCommand> {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly eventBus: EventBus,
+    private readonly matomoService: MatomoService,
   ) {}
 
   async execute(command: VerifyEmailCommand): Promise<void> {
@@ -55,6 +57,7 @@ export class VerifyEmailService implements ICommandHandler<VerifyEmailCommand> {
 
     user.verifyEmail();
     await this.userRepository.update(user);
+    await this.matomoService.trackEmailVerified(user.id);
 
     this.eventBus.publish(new AccountVerifiedEvent(user.id, user.email.value, user.firstName));
 

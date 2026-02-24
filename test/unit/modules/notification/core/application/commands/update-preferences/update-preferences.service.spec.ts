@@ -6,6 +6,7 @@ import {
   NOTIFICATION_PREFERENCE_REPOSITORY,
 } from '@modules/notification/core/domain/repositories/notification-preference.repository.interface';
 import { NotificationPreference } from '@modules/notification/core/domain/entities/notification-preference.entity';
+import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 describe('UpdatePreferencesService', () => {
   let service: UpdatePreferencesService;
@@ -31,6 +32,7 @@ describe('UpdatePreferencesService', () => {
       providers: [
         UpdatePreferencesService,
         { provide: NOTIFICATION_PREFERENCE_REPOSITORY, useValue: mockPreferenceRepository },
+        { provide: MatomoService, useValue: { trackNotificationPreferencesUpdated: jest.fn() } },
       ],
     }).compile();
 

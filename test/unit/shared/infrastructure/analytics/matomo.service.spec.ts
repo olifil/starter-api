@@ -163,6 +163,196 @@ describe('MatomoService', () => {
         });
       });
     });
+
+    describe('trackUserLogout', () => {
+      it('should track user logout event', async () => {
+        const userId = 'user-789';
+        await service.trackUserLogout(userId);
+        expect(mockTracker.track).toHaveBeenCalledWith({
+          url: 'http://api/event/Auth/Logout',
+          action_name: 'Auth - Logout',
+          e_c: 'Auth',
+          e_a: 'Logout',
+          e_n: undefined,
+          e_v: undefined,
+          uid: userId,
+        });
+      });
+    });
+
+    describe('trackLoginFailed', () => {
+      it('should track login failed event without userId', async () => {
+        await service.trackLoginFailed();
+        expect(mockTracker.track).toHaveBeenCalledWith({
+          url: 'http://api/event/Auth/LoginFailed',
+          action_name: 'Auth - LoginFailed',
+          e_c: 'Auth',
+          e_a: 'LoginFailed',
+          e_n: undefined,
+          e_v: undefined,
+          uid: undefined,
+        });
+      });
+    });
+
+    describe('trackEmailVerified', () => {
+      it('should track email verified event', async () => {
+        const userId = 'user-123';
+        await service.trackEmailVerified(userId);
+        expect(mockTracker.track).toHaveBeenCalledWith({
+          url: 'http://api/event/Auth/EmailVerified',
+          action_name: 'Auth - EmailVerified',
+          e_c: 'Auth',
+          e_a: 'EmailVerified',
+          e_n: undefined,
+          e_v: undefined,
+          uid: userId,
+        });
+      });
+    });
+
+    describe('trackPasswordResetRequested', () => {
+      it('should track password reset requested event without userId', async () => {
+        await service.trackPasswordResetRequested();
+        expect(mockTracker.track).toHaveBeenCalledWith({
+          url: 'http://api/event/Auth/PasswordResetRequested',
+          action_name: 'Auth - PasswordResetRequested',
+          e_c: 'Auth',
+          e_a: 'PasswordResetRequested',
+          e_n: undefined,
+          e_v: undefined,
+          uid: undefined,
+        });
+      });
+    });
+
+    describe('trackPasswordResetCompleted', () => {
+      it('should track password reset completed event', async () => {
+        const userId = 'user-123';
+        await service.trackPasswordResetCompleted(userId);
+        expect(mockTracker.track).toHaveBeenCalledWith({
+          url: 'http://api/event/Auth/PasswordResetCompleted',
+          action_name: 'Auth - PasswordResetCompleted',
+          e_c: 'Auth',
+          e_a: 'PasswordResetCompleted',
+          e_n: undefined,
+          e_v: undefined,
+          uid: userId,
+        });
+      });
+    });
+
+    describe('trackTokenRefresh', () => {
+      it('should track token refresh event', async () => {
+        const userId = 'user-123';
+        await service.trackTokenRefresh(userId);
+        expect(mockTracker.track).toHaveBeenCalledWith({
+          url: 'http://api/event/Auth/TokenRefresh',
+          action_name: 'Auth - TokenRefresh',
+          e_c: 'Auth',
+          e_a: 'TokenRefresh',
+          e_n: undefined,
+          e_v: undefined,
+          uid: userId,
+        });
+      });
+    });
+
+    describe('trackUserProfileUpdated', () => {
+      it('should track user profile updated event', async () => {
+        const userId = 'user-123';
+        await service.trackUserProfileUpdated(userId);
+        expect(mockTracker.track).toHaveBeenCalledWith({
+          url: 'http://api/event/User/ProfileUpdated',
+          action_name: 'User - ProfileUpdated',
+          e_c: 'User',
+          e_a: 'ProfileUpdated',
+          e_n: undefined,
+          e_v: undefined,
+          uid: userId,
+        });
+      });
+    });
+
+    describe('trackUserDeleted', () => {
+      it('should track user deleted event', async () => {
+        const userId = 'user-123';
+        await service.trackUserDeleted(userId);
+        expect(mockTracker.track).toHaveBeenCalledWith({
+          url: 'http://api/event/User/Deleted',
+          action_name: 'User - Deleted',
+          e_c: 'User',
+          e_a: 'Deleted',
+          e_n: undefined,
+          e_v: undefined,
+          uid: userId,
+        });
+      });
+    });
+
+    describe('trackNotificationSent', () => {
+      it('should track notification sent event with channel as name', async () => {
+        const userId = 'user-123';
+        await service.trackNotificationSent(userId, 'EMAIL');
+        expect(mockTracker.track).toHaveBeenCalledWith({
+          url: 'http://api/event/Notification/Sent',
+          action_name: 'Notification - Sent',
+          e_c: 'Notification',
+          e_a: 'Sent',
+          e_n: 'EMAIL',
+          e_v: undefined,
+          uid: userId,
+        });
+      });
+    });
+
+    describe('trackNotificationFailed', () => {
+      it('should track notification failed event with channel as name', async () => {
+        const userId = 'user-123';
+        await service.trackNotificationFailed(userId, 'SMS');
+        expect(mockTracker.track).toHaveBeenCalledWith({
+          url: 'http://api/event/Notification/Failed',
+          action_name: 'Notification - Failed',
+          e_c: 'Notification',
+          e_a: 'Failed',
+          e_n: 'SMS',
+          e_v: undefined,
+          uid: userId,
+        });
+      });
+    });
+
+    describe('trackNotificationPreferencesUpdated', () => {
+      it('should track notification preferences updated event', async () => {
+        const userId = 'user-123';
+        await service.trackNotificationPreferencesUpdated(userId);
+        expect(mockTracker.track).toHaveBeenCalledWith({
+          url: 'http://api/event/Notification/PreferencesUpdated',
+          action_name: 'Notification - PreferencesUpdated',
+          e_c: 'Notification',
+          e_a: 'PreferencesUpdated',
+          e_n: undefined,
+          e_v: undefined,
+          uid: userId,
+        });
+      });
+    });
+
+    describe('trackNotificationMarkedAsRead', () => {
+      it('should track notification marked as read event', async () => {
+        const userId = 'user-123';
+        await service.trackNotificationMarkedAsRead(userId);
+        expect(mockTracker.track).toHaveBeenCalledWith({
+          url: 'http://api/event/Notification/MarkedAsRead',
+          action_name: 'Notification - MarkedAsRead',
+          e_c: 'Notification',
+          e_a: 'MarkedAsRead',
+          e_n: undefined,
+          e_v: undefined,
+          uid: userId,
+        });
+      });
+    });
   });
 
   describe('when Matomo is disabled', () => {

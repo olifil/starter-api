@@ -5,6 +5,7 @@ import {
   IRefreshTokenRepository,
   REFRESH_TOKEN_REPOSITORY,
 } from '@modules/auth/core/domain/repositories/refresh-token.repository.interface';
+import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 describe('LogoutService', () => {
   let service: LogoutService;
@@ -19,6 +20,7 @@ describe('LogoutService', () => {
       providers: [
         LogoutService,
         { provide: REFRESH_TOKEN_REPOSITORY, useValue: mockRefreshTokenRepository },
+        { provide: MatomoService, useValue: { trackUserLogout: jest.fn() } },
       ],
     }).compile();
 

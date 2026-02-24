@@ -13,6 +13,7 @@ import { AccountVerifiedEvent } from '@modules/auth/core/domain/events/account-v
 import { User } from '@modules/user/core/domain/entities/user.entity';
 import { Email } from '@modules/user/core/domain/value-objects/email.vo';
 import { HashedPassword } from '@modules/user/core/domain/value-objects/hashed-password.vo';
+import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 describe('VerifyEmailService', () => {
   let service: VerifyEmailService;
@@ -58,6 +59,7 @@ describe('VerifyEmailService', () => {
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: EventBus, useValue: mockEventBus },
+        { provide: MatomoService, useValue: { trackEmailVerified: jest.fn() } },
       ],
     }).compile();
 

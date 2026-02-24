@@ -9,6 +9,7 @@ import {
   USER_REPOSITORY,
 } from '@modules/user/core/domain/repositories/user.repository.interface';
 import { PasswordResetRequestedEvent } from '../../../domain/events/password-reset-requested.event';
+import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 @Injectable()
 @CommandHandler(ForgotPasswordCommand)
@@ -21,6 +22,7 @@ export class ForgotPasswordService implements ICommandHandler<ForgotPasswordComm
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly eventBus: EventBus,
+    private readonly matomoService: MatomoService,
   ) {}
 
   async execute(command: ForgotPasswordCommand): Promise<void> {
@@ -41,7 +43,7 @@ export class ForgotPasswordService implements ICommandHandler<ForgotPasswordComm
     const resetToken = this.jwtService.sign(
       { sub: user.id, email: user.email.value, type: 'password-reset' },
 
-      { secret: resetSecret, expiresIn: resetExpiresIn as any },
+      { secret: resetSecret, expiresIn: resetExpiresIn },
     );
 
     this.eventBus.publish(
@@ -53,5 +55,7 @@ export class ForgotPasswordService implements ICommandHandler<ForgotPasswordComm
         resetExpiresIn,
       ),
     );
+
+    await this.matomoService.trackPasswordResetRequested();
   }
 }

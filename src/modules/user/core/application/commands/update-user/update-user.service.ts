@@ -7,6 +7,7 @@ import {
 } from '../../../domain/repositories/user.repository.interface';
 import { UserProfileDto } from '../../dtos/user-profile.dto';
 import { UserNotFoundException } from '../../exceptions/user-not-found.exception';
+import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 @Injectable()
 @CommandHandler(UpdateUserCommand)
@@ -15,6 +16,7 @@ export class UpdateUserService implements ICommandHandler<UpdateUserCommand> {
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
     private readonly eventBus: EventBus,
+    private readonly matomoService: MatomoService,
   ) {}
 
   async execute(command: UpdateUserCommand): Promise<UserProfileDto> {
@@ -35,6 +37,8 @@ export class UpdateUserService implements ICommandHandler<UpdateUserCommand> {
       this.eventBus.publish(event as IEvent);
     });
     updatedUser.clearDomainEvents();
+
+    await this.matomoService.trackUserProfileUpdated(command.userId);
 
     return UserProfileDto.fromDomain(updatedUser);
   }

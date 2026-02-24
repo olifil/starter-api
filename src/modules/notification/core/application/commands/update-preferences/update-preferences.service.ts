@@ -7,6 +7,7 @@ import {
   NOTIFICATION_PREFERENCE_REPOSITORY,
 } from '../../../domain/repositories/notification-preference.repository.interface';
 import { NotificationPreferenceResponseDto } from '../../dtos/notification-preference-response.dto';
+import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 @Injectable()
 @CommandHandler(UpdatePreferencesCommand)
@@ -14,6 +15,7 @@ export class UpdatePreferencesService implements ICommandHandler<UpdatePreferenc
   constructor(
     @Inject(NOTIFICATION_PREFERENCE_REPOSITORY)
     private readonly preferenceRepository: INotificationPreferenceRepository,
+    private readonly matomoService: MatomoService,
   ) {}
 
   async execute(command: UpdatePreferencesCommand): Promise<NotificationPreferenceResponseDto[]> {
@@ -29,6 +31,8 @@ export class UpdatePreferencesService implements ICommandHandler<UpdatePreferenc
       const saved = await this.preferenceRepository.upsert(preference);
       results.push(NotificationPreferenceResponseDto.fromDomain(saved));
     }
+
+    await this.matomoService.trackNotificationPreferencesUpdated(command.userId);
 
     return results;
   }

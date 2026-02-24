@@ -15,6 +15,7 @@ import { LoginResponseDto } from '../../dtos/login-response.dto';
 import { InvalidRefreshTokenException } from '../../exceptions/invalid-refresh-token.exception';
 import { computeExpiresAt } from '@shared/utils/parse-duration';
 import { randomUUID } from 'crypto';
+import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 interface JwtPayload {
   sub: string;
@@ -31,6 +32,7 @@ export class RefreshTokenService implements ICommandHandler<RefreshTokenCommand>
     private readonly userRepository: IUserRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly matomoService: MatomoService,
   ) {}
 
   async execute(command: RefreshTokenCommand): Promise<LoginResponseDto> {
@@ -85,6 +87,8 @@ export class RefreshTokenService implements ICommandHandler<RefreshTokenCommand>
       user.id,
       computeExpiresAt(refreshExpiresIn),
     );
+
+    await this.matomoService.trackTokenRefresh(user.id);
 
     return {
       accessToken,

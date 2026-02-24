@@ -8,6 +8,7 @@ import {
 import { Notification } from '@modules/notification/core/domain/entities/notification.entity';
 import { NotificationType } from '@modules/notification/core/domain/value-objects/notification-type.vo';
 import { NotificationNotFoundException } from '@modules/notification/core/application/exceptions/notification-not-found.exception';
+import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 describe('MarkAsReadService', () => {
   let service: MarkAsReadService;
@@ -38,6 +39,7 @@ describe('MarkAsReadService', () => {
       providers: [
         MarkAsReadService,
         { provide: NOTIFICATION_REPOSITORY, useValue: mockNotificationRepository },
+        { provide: MatomoService, useValue: { trackNotificationMarkedAsRead: jest.fn() } },
       ],
     }).compile();
 

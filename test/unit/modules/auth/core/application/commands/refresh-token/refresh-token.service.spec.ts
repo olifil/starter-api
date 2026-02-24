@@ -15,6 +15,7 @@ import { User } from '@modules/user/core/domain/entities/user.entity';
 import { Email } from '@modules/user/core/domain/value-objects/email.vo';
 import { HashedPassword } from '@modules/user/core/domain/value-objects/hashed-password.vo';
 import { InvalidRefreshTokenException } from '@modules/auth/core/application/exceptions/invalid-refresh-token.exception';
+import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 describe('RefreshTokenService', () => {
   let service: RefreshTokenService;
@@ -75,6 +76,7 @@ describe('RefreshTokenService', () => {
             get: jest.fn(),
           },
         },
+        { provide: MatomoService, useValue: { trackTokenRefresh: jest.fn() } },
       ],
     }).compile();
 

@@ -12,6 +12,7 @@ import {
   PUSH_SUBSCRIPTION_REPOSITORY,
 } from '../../core/domain/repositories/push-subscription.repository.interface';
 import { NotificationJobData } from './notification.producer';
+import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 @Processor('notifications')
 export class NotificationConsumer extends WorkerHost {
@@ -25,6 +26,7 @@ export class NotificationConsumer extends WorkerHost {
     @Inject(PUSH_SUBSCRIPTION_REPOSITORY)
     private readonly pushSubscriptionRepository: IPushSubscriptionRepository,
     private readonly eventBus: EventBus,
+    private readonly matomoService: MatomoService,
   ) {
     super();
   }
@@ -49,7 +51,7 @@ export class NotificationConsumer extends WorkerHost {
 
         if (subscriptions.length === 0) {
           this.logger.debug(`No push subscriptions found for user ${to}, skipping`);
-          await this.markNotificationSent(notificationId);
+          await this.markNotificationSent(notificationId, job.data.userId, channel);
           return;
         }
 
@@ -65,7 +67,7 @@ export class NotificationConsumer extends WorkerHost {
         await sender.send({ to, subject, body, metadata });
       }
 
-      await this.markNotificationSent(notificationId);
+      await this.markNotificationSent(notificationId, job.data.userId, channel);
     } catch (error) {
       const err = error as Error;
       this.logger.error(
@@ -75,14 +77,18 @@ export class NotificationConsumer extends WorkerHost {
 
       // Si c'est la dernière tentative, marquer comme échoué
       if (job.attemptsMade >= (job.opts.attempts || 3) - 1) {
-        await this.markNotificationFailed(notificationId, err.message);
+        await this.markNotificationFailed(notificationId, err.message, job.data.userId, channel);
       }
 
       throw error; // BullMQ va retenter automatiquement
     }
   }
 
-  private async markNotificationSent(notificationId: string): Promise<void> {
+  private async markNotificationSent(
+    notificationId: string,
+    userId: string,
+    channel: string,
+  ): Promise<void> {
     const notification = await this.notificationRepository.findById(notificationId);
     if (notification) {
       notification.markAsSent();
@@ -92,9 +98,15 @@ export class NotificationConsumer extends WorkerHost {
       }
       notification.clearDomainEvents();
     }
+    await this.matomoService.trackNotificationSent(userId, channel);
   }
 
-  private async markNotificationFailed(notificationId: string, reason: string): Promise<void> {
+  private async markNotificationFailed(
+    notificationId: string,
+    reason: string,
+    userId: string,
+    channel: string,
+  ): Promise<void> {
     const notification = await this.notificationRepository.findById(notificationId);
     if (notification) {
       notification.markAsFailed(reason);
@@ -104,5 +116,6 @@ export class NotificationConsumer extends WorkerHost {
       }
       notification.clearDomainEvents();
     }
+    await this.matomoService.trackNotificationFailed(userId, channel);
   }
 }
