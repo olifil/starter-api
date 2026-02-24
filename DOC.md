@@ -2040,6 +2040,98 @@ export class MyService {
 
 Les méthodes spécialisées (`trackUserLogin`, `trackUserLogout`, etc.) appellent toutes `trackEvent()` en interne. Les erreurs de tracking sont silencieuses (loguées, jamais propagées).
 
+### Consulter les données dans l'admin Matomo
+
+Aucune configuration backend supplémentaire n'est requise : le service utilise directement l'**HTTP Tracking API** de Matomo (`/matomo.php`). Dès que les variables d'environnement sont renseignées et que du trafic est généré, les données apparaissent dans l'interface.
+
+#### Rapport Évènements
+
+Chemin : **Comportement → Évènements** (ou *Behavior → Events* en anglais)
+
+Matomo organise les événements sur 3 niveaux hiérarchiques :
+
+```
+Catégorie (Category)
+  └── Action
+        └── Nom (Name)   — utilisé pour le canal des notifications
+```
+
+Pour l'API :
+
+| Vue Matomo | Ce que vous voyez |
+|------------|-------------------|
+| Catégories | `Auth`, `User`, `Notification` |
+| Actions (sous `Auth`) | `Logout`, `LoginFailed`, `EmailVerified`, `PasswordResetRequested`, `PasswordResetCompleted`, `TokenRefresh` |
+| Actions (sous `User`) | `Register`, `Login`, `ProfileUpdated`, `Deleted` |
+| Actions (sous `Notification`) | `Sent`, `Failed`, `PreferencesUpdated`, `MarkedAsRead` |
+| Noms (sous `Sent` / `Failed`) | `EMAIL`, `SMS`, `PUSH`, `WEB_PUSH`, `WEBSOCKET` |
+
+Pour chaque combinaison, Matomo affiche : **nombre total d'événements**, **visiteurs uniques**, et **valeur** (non utilisée ici).
+
+#### Profils visiteurs (userId)
+
+Les événements associés à un `userId` sont rattachés au **profil visiteur** correspondant dans Matomo.
+
+Chemin : **Visiteurs → Profils des visiteurs** — saisir un `userId` dans la barre de recherche pour voir l'historique complet d'un utilisateur.
+
+> Nécessite que l'option **"Suivi des visiteurs"** soit activée dans *Administration → Vie privée → Anonymisation des données* (elle l'est par défaut sur les nouvelles installations).
+
+#### Segments personnalisés
+
+Dans n'importe quel rapport, cliquer sur **"+ Ajouter un segment"** pour filtrer par dimension :
+
+| Dimension | Exemple de filtre |
+|-----------|-------------------|
+| Catégorie d'évènement | `= Auth` |
+| Action d'évènement | `= LoginFailed` |
+| Nom d'évènement | `= EMAIL` |
+| ID du visiteur | `= <userId>` |
+
+#### Objectifs et entonnoirs (Goals & Funnels)
+
+Pour mesurer des taux de conversion (ex: inscription → vérification email → premier login) :
+
+1. Aller dans **Conversions → Objectifs → Ajouter un objectif**
+2. Choisir le déclencheur **"Évènement"**
+3. Configurer : Catégorie `= User` + Action `= Register`
+4. Répéter pour chaque étape de l'entonnoir
+
+> Le plugin **Funnels** (disponible dans Matomo Cloud ou Matomo On-Premise avec une licence) permet de visualiser les abandons entre étapes.
+
+#### Rapports personnalisés
+
+Chemin : **Rapports personnalisés → Nouveau rapport** (plugin *Custom Reports*, inclus dans Matomo On-Premise ≥ 4.x)
+
+Exemple de rapport utile — **Taux d'échec de connexion** :
+- Dimension 1 : Action d'évènement
+- Métriques : Évènements
+- Filtre : Catégorie `= Auth`, Action `= LoginFailed`
+
+#### Alertes automatiques
+
+Chemin : **Administration → Alertes personnalisées**
+
+Exemple : déclencher une alerte si `LoginFailed` dépasse 100 événements en 1 heure → signe potentiel d'attaque bruteforce.
+
+#### API Reporting Matomo
+
+Les données sont également accessibles via l'**API REST de Matomo** (utile pour intégrer des dashboards externes) :
+
+```
+GET https://matomo.monapp.fr/index.php
+  ?module=API
+  &method=Events.getCategory
+  &idSite=1
+  &period=day
+  &date=today
+  &token_auth=<MATOMO_TOKEN>
+  &format=JSON
+```
+
+> `MATOMO_TOKEN` (généré dans *Administration → Sécurité → Tokens d'authentification*) doit être renseigné dans les variables d'environnement pour utiliser l'API.
+
+---
+
 ### Configuration
 
 Voir [Annexe B → Matomo Analytics](#matomo-analytics-optionnel).
