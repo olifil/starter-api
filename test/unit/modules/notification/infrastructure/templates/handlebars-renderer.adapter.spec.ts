@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
 import { HandlebarsRendererAdapter } from '@modules/notification/infrastructure/templates/handlebars-renderer.adapter';
 
@@ -22,8 +23,20 @@ describe('HandlebarsRendererAdapter', () => {
       }),
     };
 
+    const mockConfigService = {
+      get: jest.fn().mockImplementation((key: string, defaultValue?: unknown) => {
+        if (key === 'app.siteName') return 'Mon Site';
+        if (key === 'app.frontendUrl') return 'http://localhost:4200';
+        return defaultValue;
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [HandlebarsRendererAdapter, { provide: I18nService, useValue: mockI18nService }],
+      providers: [
+        HandlebarsRendererAdapter,
+        { provide: I18nService, useValue: mockI18nService },
+        { provide: ConfigService, useValue: mockConfigService },
+      ],
     }).compile();
 
     renderer = module.get<HandlebarsRendererAdapter>(HandlebarsRendererAdapter);
@@ -95,7 +108,7 @@ describe('HandlebarsRendererAdapter', () => {
         'notification.welcome.subject',
         expect.objectContaining({
           args: expect.objectContaining({
-            appName: 'Starter API',
+            appName: 'Mon Site',
             year: new Date().getFullYear(),
             lang: 'fr',
             firstName: 'John',

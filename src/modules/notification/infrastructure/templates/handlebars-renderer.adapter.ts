@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
 import * as Handlebars from 'handlebars';
 import * as fs from 'fs';
@@ -15,7 +16,10 @@ export class HandlebarsRendererAdapter implements ITemplateRenderer, OnModuleIni
   private readonly logger = new Logger(HandlebarsRendererAdapter.name);
   private layoutTemplate: Handlebars.TemplateDelegate | null = null;
 
-  constructor(private readonly i18n: I18nService) {}
+  constructor(
+    private readonly i18n: I18nService,
+    private readonly configService: ConfigService,
+  ) {}
 
   onModuleInit(): void {
     registerHandlebarsHelpers();
@@ -30,7 +34,10 @@ export class HandlebarsRendererAdapter implements ITemplateRenderer, OnModuleIni
     locale: string,
     variables: Record<string, unknown>,
   ): RenderedContent {
-    const appName = (variables['appName'] as string) || 'Starter API';
+    const appName =
+      (variables['appName'] as string) ||
+      this.configService.get<string>('app.siteName', 'Mon Application');
+    const frontendUrl = this.configService.get<string>('app.frontendUrl', '#');
     const year = new Date().getFullYear();
 
     const enrichedVars = {
@@ -48,6 +55,7 @@ export class HandlebarsRendererAdapter implements ITemplateRenderer, OnModuleIni
       const layoutArgs = { appName, year: String(year) };
       const body = this.layoutTemplate({
         ...enrichedVars,
+        frontendUrl,
         subject,
         content: bodyText,
         layoutHeaderTitle: String(

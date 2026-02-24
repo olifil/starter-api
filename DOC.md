@@ -1908,7 +1908,7 @@ Toutes les 5 minutes (@nestjs/schedule @Interval)
 | `statusLabel` | `dégradé` / `rétabli` |
 | `details` | `Latence: 2400ms`, `ECONNREFUSED`, `Heap: 88% (450MB/512MB)` |
 | `timestamp` | `2026-02-13T14:30:00.000Z` |
-| `appName` | Valeur de `app.name` dans la config |
+| `appName` | Valeur de `app.siteName` dans la config (`SITE_NAME`) |
 
 #### Exemple d'email reçu par un SUPER_ADMIN
 
@@ -2518,7 +2518,8 @@ git add prisma/       # Commiter les fichiers de migration
 | `NODE_ENV` | `development` | Environnement (`development`, `production`, `test`) |
 | `PORT` | `3000` | Port d'écoute |
 | `API_PREFIX` | `api/v1` | Préfixe des routes |
-| `FRONTEND_URL` | `http://localhost:4200` | URL publique du frontend (liens de reset, vérification email…) |
+| `FRONTEND_URL` | `http://localhost:4200` | URL publique du frontend (liens de reset, vérification email, lien dans le footer des emails) |
+| `SITE_NAME` | `Mon Application` | Nom du site frontend affiché dans le copyright des emails |
 | `EMAIL_VERIFICATION_PATH` | `/verify-email` | Chemin frontend pour la vérification email |
 | `CONTACT_EMAIL` | — | Adresse de réception des messages de contact |
 | `ENABLE_CORS` | `true` | Activer CORS |
