@@ -50,7 +50,7 @@ describe('User Pagination (Integration)', () => {
           role: Role.ADMIN,
         },
       });
-      adminToken = signToken(app, {
+      adminToken = await signToken(app, {
         sub: admin.id,
         email: admin.email,
       });

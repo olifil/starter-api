@@ -59,12 +59,17 @@ describe('Auth Password Reset (Integration)', () => {
     });
   };
 
-  const generateResetToken = (userId: string, email: string, options?: { expiresIn?: string }) => {
+  const generateResetToken = async (
+    userId: string,
+    email: string,
+    options?: { expiresIn?: string },
+  ) => {
     const resetSecret =
       configService.get<string>('jwt.resetSecret') ?? configService.get<string>('jwt.secret')!;
-    return jwtService.sign(
+    return jwtService.signAsync(
       { sub: userId, email, type: 'password-reset' },
-      { secret: resetSecret, expiresIn: options?.expiresIn ?? '15m' },
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      { secret: resetSecret, expiresIn: (options?.expiresIn ?? '15m') as any },
     );
   };
 
@@ -103,7 +108,7 @@ describe('Auth Password Reset (Integration)', () => {
       const user = await prisma.user.findUnique({
         where: { email: 'reset@example.com' },
       });
-      const resetToken = generateResetToken(user!.id, user!.email);
+      const resetToken = await generateResetToken(user!.id, user!.email);
 
       // Reset le mot de passe
       await request(app.getHttpServer())
@@ -125,7 +130,7 @@ describe('Auth Password Reset (Integration)', () => {
       const user = await prisma.user.findUnique({
         where: { email: 'reset@example.com' },
       });
-      const resetToken = generateResetToken(user!.id, user!.email);
+      const resetToken = await generateResetToken(user!.id, user!.email);
 
       await request(app.getHttpServer())
         .post('/auth/reset-password')
@@ -152,7 +157,7 @@ describe('Auth Password Reset (Integration)', () => {
       const user = await prisma.user.findUnique({
         where: { email: 'reset@example.com' },
       });
-      const expiredToken = generateResetToken(user!.id, user!.email, { expiresIn: '-1h' });
+      const expiredToken = await generateResetToken(user!.id, user!.email, { expiresIn: '-1h' });
 
       const response = await request(app.getHttpServer())
         .post('/auth/reset-password')
@@ -169,9 +174,10 @@ describe('Auth Password Reset (Integration)', () => {
 
       const resetSecret =
         configService.get<string>('jwt.resetSecret') ?? configService.get<string>('jwt.secret')!;
-      const wrongTypeToken = jwtService.sign(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const wrongTypeToken = await jwtService.signAsync(
         { sub: user!.id, email: user!.email, type: 'wrong-type' },
-        { secret: resetSecret, expiresIn: '15m' },
+        { secret: resetSecret, expiresIn: '15m' as any },
       );
 
       const response = await request(app.getHttpServer())
@@ -186,7 +192,7 @@ describe('Auth Password Reset (Integration)', () => {
       const user = await prisma.user.findUnique({
         where: { email: 'reset@example.com' },
       });
-      const resetToken = generateResetToken(user!.id, user!.email);
+      const resetToken = await generateResetToken(user!.id, user!.email);
 
       await request(app.getHttpServer())
         .post('/auth/reset-password')
@@ -198,9 +204,10 @@ describe('Auth Password Reset (Integration)', () => {
       const fakeUserId = '00000000-0000-0000-0000-000000000000';
       const resetSecret =
         configService.get<string>('jwt.resetSecret') ?? configService.get<string>('jwt.secret')!;
-      const fakeToken = jwtService.sign(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const fakeToken = await jwtService.signAsync(
         { sub: fakeUserId, email: 'fake@example.com', type: 'password-reset' },
-        { secret: resetSecret, expiresIn: '15m' },
+        { secret: resetSecret, expiresIn: '15m' as any },
       );
 
       const response = await request(app.getHttpServer())

@@ -9,11 +9,14 @@ import request from 'supertest';
  * Nécessaire car JwtModule est importé sans `registerAsync` dans certains modules,
  * ce qui fait que `app.get(JwtService)` peut retourner une instance sans secret par défaut.
  */
-export function signToken(app: INestApplication, payload: { sub: string; email: string }): string {
+export async function signToken(
+  app: INestApplication,
+  payload: { sub: string; email: string },
+): Promise<string> {
   const jwtService = app.get(JwtService);
   const configService = app.get(ConfigService);
   const secret = configService.get<string>('jwt.secret');
-  return jwtService.sign(payload, { secret });
+  return jwtService.signAsync(payload, { secret });
 }
 
 /**

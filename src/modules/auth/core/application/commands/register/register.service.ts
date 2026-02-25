@@ -61,7 +61,7 @@ export class RegisterService implements ICommandHandler<RegisterCommand> {
       this.configService.get<string>('jwt.secret')!;
     const verificationExpiresIn = this.configService.get<string>('jwt.verificationExpiresIn', '7d');
 
-    const verificationToken = this.jwtService.sign(
+    const verificationToken = await this.jwtService.signAsync(
       { sub: savedUser.id, email: savedUser.email.value, type: 'email-verification' },
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

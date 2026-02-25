@@ -37,7 +37,7 @@ export class ResetPasswordService implements ICommandHandler<ResetPasswordComman
 
     let payload: ResetTokenPayload;
     try {
-      payload = this.jwtService.verify<ResetTokenPayload>(command.token, {
+      payload = await this.jwtService.verifyAsync<ResetTokenPayload>(command.token, {
         secret: resetSecret,
       });
     } catch {

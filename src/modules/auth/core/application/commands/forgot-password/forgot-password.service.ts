@@ -40,10 +40,11 @@ export class ForgotPasswordService implements ICommandHandler<ForgotPasswordComm
       this.configService.get<string>('jwt.secret')!;
     const resetExpiresIn = this.configService.get<string>('jwt.resetExpiresIn', '15m');
 
-    const resetToken = this.jwtService.sign(
+    const resetToken = await this.jwtService.signAsync(
       { sub: user.id, email: user.email.value, type: 'password-reset' },
 
-      { secret: resetSecret, expiresIn: resetExpiresIn },
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      { secret: resetSecret, expiresIn: resetExpiresIn as any },
     );
 
     this.eventBus.publish(

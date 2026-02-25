@@ -39,7 +39,7 @@ export class RefreshTokenService implements ICommandHandler<RefreshTokenCommand>
     // 1. Verify JWT signature and expiration
     let payload: JwtPayload;
     try {
-      payload = this.jwtService.verify<JwtPayload>(command.refreshToken, {
+      payload = await this.jwtService.verifyAsync<JwtPayload>(command.refreshToken, {
         secret: this.configService.get<string>('jwt.refreshSecret'),
       });
     } catch {
@@ -67,16 +67,18 @@ export class RefreshTokenService implements ICommandHandler<RefreshTokenCommand>
       email: user.email.value,
     };
 
-    const accessToken = this.jwtService.sign(newPayload, {
+    const accessToken = await this.jwtService.signAsync(newPayload, {
       secret: this.configService.get('jwt.secret'),
-      expiresIn: this.configService.get('jwt.expiresIn'),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      expiresIn: this.configService.get('jwt.expiresIn') as any,
     });
 
-    const refreshToken = this.jwtService.sign(
+    const refreshToken = await this.jwtService.signAsync(
       { ...newPayload, jti: randomUUID() },
       {
         secret: this.configService.get('jwt.refreshSecret'),
-        expiresIn: this.configService.get('jwt.refreshExpiresIn'),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        expiresIn: this.configService.get('jwt.refreshExpiresIn') as any,
       },
     );
 

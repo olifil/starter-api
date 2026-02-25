@@ -57,7 +57,7 @@ describe('Notification Preferences (Integration)', () => {
       },
     });
     userId = user.id;
-    userToken = signToken(app, { sub: user.id, email: user.email });
+    userToken = await signToken(app, { sub: user.id, email: user.email });
 
     // Créer un autre utilisateur
     const otherUser = await prisma.user.create({
@@ -69,7 +69,7 @@ describe('Notification Preferences (Integration)', () => {
         role: Role.AUTHENTICATED_USER,
       },
     });
-    otherUserToken = signToken(app, { sub: otherUser.id, email: otherUser.email });
+    otherUserToken = await signToken(app, { sub: otherUser.id, email: otherUser.email });
   });
 
   describe('GET /notifications/preferences', () => {

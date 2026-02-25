@@ -39,7 +39,7 @@ export class VerifyEmailService implements ICommandHandler<VerifyEmailCommand> {
         this.configService.get<string>('jwt.verificationSecret') ??
         this.configService.get<string>('jwt.secret')!;
 
-      payload = this.jwtService.verify<VerificationTokenPayload>(command.token, {
+      payload = await this.jwtService.verifyAsync<VerificationTokenPayload>(command.token, {
         secret: verificationSecret,
       });
     } catch {

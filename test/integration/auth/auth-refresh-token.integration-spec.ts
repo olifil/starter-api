@@ -126,11 +126,12 @@ describe('Auth Refresh Token (Integration)', () => {
         where: { email: 'refresh@example.com' },
       });
 
-      const expiredToken = jwtService.sign(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const expiredToken = await jwtService.signAsync(
         { sub: user!.id, email: user!.email },
         {
           secret: configService.get<string>('jwt.refreshSecret'),
-          expiresIn: '-1h',
+          expiresIn: '-1h' as any,
         },
       );
 

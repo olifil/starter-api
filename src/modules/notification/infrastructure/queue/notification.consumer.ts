@@ -32,7 +32,7 @@ export class NotificationConsumer extends WorkerHost {
   }
 
   async process(job: Job<NotificationJobData>): Promise<void> {
-    const { notificationId, channel, to, subject, body, metadata } = job.data;
+    const { notificationId, channel, to, subject, body, metadata, userId } = job.data;
 
     this.logger.debug(`Processing job ${job.id}: notification ${notificationId} via ${channel}`);
 
@@ -40,7 +40,12 @@ export class NotificationConsumer extends WorkerHost {
 
     if (!sender) {
       this.logger.warn(`No enabled sender found for channel ${channel}`);
-      await this.markNotificationFailed(notificationId, `No enabled sender for channel ${channel}`);
+      await this.markNotificationFailed(
+        notificationId,
+        `No enabled sender for channel ${channel}`,
+        userId,
+        channel,
+      );
       return;
     }
 

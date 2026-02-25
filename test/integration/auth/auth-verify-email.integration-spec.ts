@@ -55,7 +55,7 @@ describe('Auth Verify Email (Integration)', () => {
     return prisma.user.findUnique({ where: { email: 'verify@example.com' } });
   };
 
-  const generateVerificationToken = (
+  const generateVerificationToken = async (
     userId: string,
     email: string,
     options?: { expiresIn?: string },
@@ -63,16 +63,17 @@ describe('Auth Verify Email (Integration)', () => {
     const verificationSecret =
       configService.get<string>('jwt.verificationSecret') ??
       configService.get<string>('jwt.secret')!;
-    return jwtService.sign(
+    return jwtService.signAsync(
       { sub: userId, email, type: 'email-verification' },
-      { secret: verificationSecret, expiresIn: options?.expiresIn ?? '7d' },
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      { secret: verificationSecret, expiresIn: (options?.expiresIn ?? '7d') as any },
     );
   };
 
   describe('POST /auth/verify-email', () => {
     it('should verify email with valid token', async () => {
       const user = await registerUser();
-      const token = generateVerificationToken(user!.id, user!.email);
+      const token = await generateVerificationToken(user!.id, user!.email);
 
       await request(app.getHttpServer()).post('/auth/verify-email').send({ token }).expect(204);
 
@@ -102,7 +103,7 @@ describe('Auth Verify Email (Integration)', () => {
 
     it('should reject an expired token', async () => {
       const user = await registerUser();
-      const expiredToken = generateVerificationToken(user!.id, user!.email, {
+      const expiredToken = await generateVerificationToken(user!.id, user!.email, {
         expiresIn: '-1h',
       });
 
@@ -118,9 +119,10 @@ describe('Auth Verify Email (Integration)', () => {
       const verificationSecret =
         configService.get<string>('jwt.verificationSecret') ??
         configService.get<string>('jwt.secret')!;
-      const wrongTypeToken = jwtService.sign(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const wrongTypeToken = await jwtService.signAsync(
         { sub: user!.id, email: user!.email, type: 'wrong-type' },
-        { secret: verificationSecret, expiresIn: '7d' },
+        { secret: verificationSecret, expiresIn: '7d' as any },
       );
 
       const response = await request(app.getHttpServer())
@@ -132,7 +134,7 @@ describe('Auth Verify Email (Integration)', () => {
 
     it('should reject token for non-existent user', async () => {
       const fakeUserId = '00000000-0000-0000-0000-000000000000';
-      const token = generateVerificationToken(fakeUserId, 'fake@example.com');
+      const token = await generateVerificationToken(fakeUserId, 'fake@example.com');
 
       const response = await request(app.getHttpServer())
         .post('/auth/verify-email')

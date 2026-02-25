@@ -45,7 +45,7 @@ describe('RBAC Authorization (Integration)', () => {
       },
     });
     authenticatedUserId = authenticatedUser.id;
-    authenticatedUserToken = signToken(app, {
+    authenticatedUserToken = await signToken(app, {
       sub: authenticatedUser.id,
       email: authenticatedUser.email,
     });
@@ -69,7 +69,7 @@ describe('RBAC Authorization (Integration)', () => {
         role: Role.ADMIN,
       },
     });
-    adminToken = signToken(app, {
+    adminToken = await signToken(app, {
       sub: admin.id,
       email: admin.email,
     });
@@ -83,7 +83,7 @@ describe('RBAC Authorization (Integration)', () => {
         role: Role.SUPER_ADMIN,
       },
     });
-    superAdminToken = signToken(app, {
+    superAdminToken = await signToken(app, {
       sub: superAdmin.id,
       email: superAdmin.email,
     });
@@ -315,12 +315,13 @@ describe('RBAC Authorization (Integration)', () => {
       const jwtService = app.get(JwtService);
       const configService = app.get(ConfigService);
       const secret = configService.get<string>('jwt.secret');
-      const expiredToken = jwtService.sign(
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const expiredToken = await jwtService.signAsync(
         {
           sub: authenticatedUserId,
           email: 'user@test.com',
         },
-        { secret, expiresIn: '-1h' },
+        { secret, expiresIn: '-1h' as any },
       );
 
       const response = await request(app.getHttpServer())

@@ -65,16 +65,18 @@ export class LoginHandler implements IQueryHandler<LoginQuery> {
       email: user.email.value,
     };
 
-    const accessToken = this.jwtService.sign(payload, {
+    const accessToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.get('jwt.secret'),
-      expiresIn: this.configService.get('jwt.expiresIn'),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      expiresIn: this.configService.get('jwt.expiresIn') as any,
     });
 
-    const refreshToken = this.jwtService.sign(
+    const refreshToken = await this.jwtService.signAsync(
       { ...payload, jti: randomUUID() },
       {
         secret: this.configService.get('jwt.refreshSecret'),
-        expiresIn: this.configService.get('jwt.refreshExpiresIn'),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        expiresIn: this.configService.get('jwt.refreshExpiresIn') as any,
       },
     );
 

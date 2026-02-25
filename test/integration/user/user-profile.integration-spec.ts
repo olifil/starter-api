@@ -67,7 +67,7 @@ describe('User Profile (Integration)', () => {
       },
     });
     adminUserId = admin.id;
-    adminToken = signToken(app, {
+    adminToken = await signToken(app, {
       sub: admin.id,
       email: admin.email,
     });
