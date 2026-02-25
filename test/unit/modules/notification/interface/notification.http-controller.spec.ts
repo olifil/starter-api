@@ -60,13 +60,7 @@ describe('NotificationHttpController', () => {
       const result = await controller.send(dto as never);
 
       expect(commandBus.execute).toHaveBeenCalledWith(
-        new SendNotificationCommand(
-          dto.userIds,
-          dto.type,
-          dto.channels,
-          dto.variables,
-          dto.locale,
-        ),
+        new SendNotificationCommand(dto.userIds, dto.type, dto.channels, dto.variables, dto.locale),
       );
       expect(result).toBe(expected);
     });

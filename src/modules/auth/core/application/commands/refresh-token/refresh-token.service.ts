@@ -69,16 +69,16 @@ export class RefreshTokenService implements ICommandHandler<RefreshTokenCommand>
 
     const accessToken = await this.jwtService.signAsync(newPayload, {
       secret: this.configService.get('jwt.secret'),
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      expiresIn: this.configService.get('jwt.expiresIn') as any,
+
+      expiresIn: this.configService.get('jwt.expiresIn'),
     });
 
     const refreshToken = await this.jwtService.signAsync(
       { ...newPayload, jti: randomUUID() },
       {
         secret: this.configService.get('jwt.refreshSecret'),
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        expiresIn: this.configService.get('jwt.refreshExpiresIn') as any,
+
+        expiresIn: this.configService.get('jwt.refreshExpiresIn'),
       },
     );
 

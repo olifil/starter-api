@@ -30,7 +30,9 @@ export const pinoConfig: Params = {
 
     // Customisation des logs de requêtes
     customProps: (req: IncomingMessage) => ({
-      requestId: (req as any).headers['x-request-id'] || (req as any).id,
+      requestId:
+        (req.headers['x-request-id'] as string | undefined) ??
+        (req as unknown as { id?: string }).id,
     }),
 
     // Ne pas logger les routes de health check
@@ -41,7 +43,15 @@ export const pinoConfig: Params = {
 
     // Serializers pour formater les objets
     serializers: {
-      req: (req: any) => ({
+      req: (req: {
+        id: string;
+        method: string;
+        url: string;
+        query: unknown;
+        params: unknown;
+        remoteAddress: string;
+        remotePort: number;
+      }) => ({
         id: req.id,
         method: req.method,
         url: req.url,
@@ -50,10 +60,10 @@ export const pinoConfig: Params = {
         remoteAddress: req.remoteAddress,
         remotePort: req.remotePort,
       }),
-      res: (res: any) => ({
+      res: (res: { statusCode: number }) => ({
         statusCode: res.statusCode,
       }),
-      err: (err: any) => ({
+      err: (err: { type: string; message: string; stack: string }) => ({
         type: err.type,
         message: err.message,
         stack: err.stack,

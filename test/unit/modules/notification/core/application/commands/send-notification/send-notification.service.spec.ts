@@ -109,7 +109,7 @@ describe('SendNotificationService', () => {
     notificationRepository = module.get(NOTIFICATION_REPOSITORY);
     preferenceRepository = module.get(NOTIFICATION_PREFERENCE_REPOSITORY);
     templateRenderer = module.get(TEMPLATE_RENDERER);
-    userRepository = module.get(USER_REPOSITORY) as jest.Mocked<IUserRepository>;
+    userRepository = module.get(USER_REPOSITORY);
     producer = module.get(NotificationProducer);
     emailSender = mockEmailSender;
   });
@@ -122,13 +122,7 @@ describe('SendNotificationService', () => {
     it('should return empty array when no users found', async () => {
       userRepository.findByIds.mockResolvedValue([]);
 
-      const command = new SendNotificationCommand(
-        ['unknown-user'],
-        'welcome',
-        ['EMAIL'],
-        {},
-        'fr',
-      );
+      const command = new SendNotificationCommand(['unknown-user'], 'welcome', ['EMAIL'], {}, 'fr');
       const result = await service.execute(command);
 
       expect(result).toEqual([]);

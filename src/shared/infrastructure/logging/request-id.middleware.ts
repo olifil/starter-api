@@ -21,6 +21,7 @@ export class RequestIdMiddleware implements NestMiddleware {
 
 // Extension du type Request pour TypeScript
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       id: string;

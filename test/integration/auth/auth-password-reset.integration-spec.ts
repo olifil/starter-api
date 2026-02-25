@@ -68,7 +68,7 @@ describe('Auth Password Reset (Integration)', () => {
       configService.get<string>('jwt.resetSecret') ?? configService.get<string>('jwt.secret')!;
     return jwtService.signAsync(
       { sub: userId, email, type: 'password-reset' },
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
       { secret: resetSecret, expiresIn: (options?.expiresIn ?? '15m') as any },
     );
   };
@@ -174,9 +174,10 @@ describe('Auth Password Reset (Integration)', () => {
 
       const resetSecret =
         configService.get<string>('jwt.resetSecret') ?? configService.get<string>('jwt.secret')!;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
       const wrongTypeToken = await jwtService.signAsync(
         { sub: user!.id, email: user!.email, type: 'wrong-type' },
+
         { secret: resetSecret, expiresIn: '15m' as any },
       );
 
@@ -204,9 +205,10 @@ describe('Auth Password Reset (Integration)', () => {
       const fakeUserId = '00000000-0000-0000-0000-000000000000';
       const resetSecret =
         configService.get<string>('jwt.resetSecret') ?? configService.get<string>('jwt.secret')!;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
       const fakeToken = await jwtService.signAsync(
         { sub: fakeUserId, email: 'fake@example.com', type: 'password-reset' },
+
         { secret: resetSecret, expiresIn: '15m' as any },
       );
 

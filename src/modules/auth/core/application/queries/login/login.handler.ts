@@ -67,16 +67,16 @@ export class LoginHandler implements IQueryHandler<LoginQuery> {
 
     const accessToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.get('jwt.secret'),
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      expiresIn: this.configService.get('jwt.expiresIn') as any,
+
+      expiresIn: this.configService.get('jwt.expiresIn'),
     });
 
     const refreshToken = await this.jwtService.signAsync(
       { ...payload, jti: randomUUID() },
       {
         secret: this.configService.get('jwt.refreshSecret'),
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        expiresIn: this.configService.get('jwt.refreshExpiresIn') as any,
+
+        expiresIn: this.configService.get('jwt.refreshExpiresIn'),
       },
     );
 

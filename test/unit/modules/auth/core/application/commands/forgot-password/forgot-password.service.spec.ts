@@ -65,7 +65,7 @@ describe('ForgotPasswordService', () => {
     }).compile();
 
     service = module.get<ForgotPasswordService>(ForgotPasswordService);
-    userRepository = module.get(USER_REPOSITORY) as jest.Mocked<IUserRepository>;
+    userRepository = module.get(USER_REPOSITORY);
     eventBus = module.get(EventBus);
     jwtService = module.get(JwtService);
   });

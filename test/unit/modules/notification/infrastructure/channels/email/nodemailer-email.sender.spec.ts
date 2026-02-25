@@ -10,9 +10,6 @@ jest.mock('nodemailer', () => ({
 }));
 
 describe('NodemailerEmailSender', () => {
-  let sender: NodemailerEmailSender;
-  let configService: jest.Mocked<ConfigService>;
-
   const buildSender = async (config: Record<string, unknown> = {}) => {
     const defaults: Record<string, unknown> = {
       'notification.smtp.enabled': true,
@@ -37,7 +34,7 @@ describe('NodemailerEmailSender', () => {
 
     return {
       sender: module.get<NodemailerEmailSender>(NodemailerEmailSender),
-      configService: module.get(ConfigService) as jest.Mocked<ConfigService>,
+      configService: module.get(ConfigService),
     };
   };
 

@@ -65,7 +65,7 @@ describe('Auth Verify Email (Integration)', () => {
       configService.get<string>('jwt.secret')!;
     return jwtService.signAsync(
       { sub: userId, email, type: 'email-verification' },
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
       { secret: verificationSecret, expiresIn: (options?.expiresIn ?? '7d') as any },
     );
   };
@@ -119,9 +119,10 @@ describe('Auth Verify Email (Integration)', () => {
       const verificationSecret =
         configService.get<string>('jwt.verificationSecret') ??
         configService.get<string>('jwt.secret')!;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
       const wrongTypeToken = await jwtService.signAsync(
         { sub: user!.id, email: user!.email, type: 'wrong-type' },
+
         { secret: verificationSecret, expiresIn: '7d' as any },
       );
 

@@ -2,7 +2,6 @@ import {
   HashedPassword,
   PasswordInvalidException,
 } from '@modules/user/core/domain/value-objects/hashed-password.vo';
-import * as bcrypt from 'bcrypt';
 
 describe('HashedPassword Value Object', () => {
   describe('fromPlainPassword', () => {

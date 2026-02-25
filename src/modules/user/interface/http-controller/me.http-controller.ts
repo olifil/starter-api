@@ -9,6 +9,11 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '@shared/decorators/current-user.decorator';
 
+interface AuthUser {
+  userId: string;
+  email: string;
+}
+
 @Controller('users')
 @ApiTags('Users')
 export class MeHttpController {
@@ -28,7 +33,7 @@ export class MeHttpController {
   })
   @ApiResponse({ status: 401, description: 'Non authentifié' })
   @ApiResponse({ status: 404, description: 'Utilisateur non trouvé' })
-  async getMyProfile(@CurrentUser() user: any): Promise<UserProfileDto> {
+  async getMyProfile(@CurrentUser() user: AuthUser): Promise<UserProfileDto> {
     const query = new GetUserQuery(user.userId);
     return this.queryBus.execute(query);
   }
@@ -46,7 +51,7 @@ export class MeHttpController {
   @ApiResponse({ status: 401, description: 'Non authentifié' })
   @ApiResponse({ status: 404, description: 'Utilisateur non trouvé' })
   async updateMyProfile(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
     @Body() dto: UpdateUserDto,
   ): Promise<UserProfileDto> {
     const command = new UpdateUserCommand(user.userId, dto.firstName, dto.lastName);
@@ -59,7 +64,7 @@ export class MeHttpController {
   @ApiOperation({ summary: 'Supprimer mon compte utilisateur' })
   @ApiResponse({ status: 204, description: 'Compte supprimé avec succès' })
   @ApiResponse({ status: 401, description: 'Non authentifié' })
-  async deleteMyAccount(@CurrentUser() user: any): Promise<void> {
+  async deleteMyAccount(@CurrentUser() user: AuthUser): Promise<void> {
     const command = new DeleteUserCommand(user.userId);
     return this.commandBus.execute(command);
   }

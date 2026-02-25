@@ -10,7 +10,6 @@ import { User } from '@modules/user/core/domain/entities/user.entity';
 import { Email } from '@modules/user/core/domain/value-objects/email.vo';
 import { HashedPassword } from '@modules/user/core/domain/value-objects/hashed-password.vo';
 import { UserNotFoundException } from '@modules/user/core/application/exceptions/user-not-found.exception';
-import { UserDeletedEvent } from '@modules/user/core/domain/events/user-deleted.event';
 import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 describe('DeleteUserService', () => {

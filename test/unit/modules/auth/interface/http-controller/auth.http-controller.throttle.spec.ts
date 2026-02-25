@@ -37,7 +37,13 @@ describe('AuthHttpController — throttle decorators', () => {
   });
 
   describe('routes exemptées du throttler strict (@SkipThrottle({ strict: true }))', () => {
-    const nonSensitiveRoutes = ['refresh', 'resetPassword', 'verifyEmail', 'logout', 'revokeSessions'];
+    const nonSensitiveRoutes = [
+      'refresh',
+      'resetPassword',
+      'verifyEmail',
+      'logout',
+      'revokeSessions',
+    ];
 
     it.each(nonSensitiveRoutes)(
       'should skip strict throttler on %s (SKIP key = true on method)',
@@ -51,15 +57,12 @@ describe('AuthHttpController — throttle decorators', () => {
       },
     );
 
-    it.each(nonSensitiveRoutes)(
-      'should NOT have strict throttler TTL key on %s',
-      (method) => {
-        const descriptor = Object.getOwnPropertyDescriptor(AuthHttpController.prototype, method);
-        const keys = Reflect.getMetadataKeys(descriptor!.value as object) as string[];
+    it.each(nonSensitiveRoutes)('should NOT have strict throttler TTL key on %s', (method) => {
+      const descriptor = Object.getOwnPropertyDescriptor(AuthHttpController.prototype, method);
+      const keys = Reflect.getMetadataKeys(descriptor!.value as object) as string[];
 
-        expect(keys).not.toContain(TTL_KEY);
-      },
-    );
+      expect(keys).not.toContain(TTL_KEY);
+    });
   });
 
   describe('class-level configuration', () => {

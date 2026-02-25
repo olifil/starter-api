@@ -315,7 +315,7 @@ describe('RBAC Authorization (Integration)', () => {
       const jwtService = app.get(JwtService);
       const configService = app.get(ConfigService);
       const secret = configService.get<string>('jwt.secret');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
       const expiredToken = await jwtService.signAsync(
         {
           sub: authenticatedUserId,

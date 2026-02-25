@@ -60,7 +60,7 @@ describe('ResetPasswordService', () => {
     }).compile();
 
     service = module.get<ResetPasswordService>(ResetPasswordService);
-    userRepository = module.get(USER_REPOSITORY) as jest.Mocked<IUserRepository>;
+    userRepository = module.get(USER_REPOSITORY);
     jwtService = module.get(JwtService);
   });
 

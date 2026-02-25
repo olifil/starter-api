@@ -1,5 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { User } from '@prisma/client';
 import { AbilityFactory } from '../abilities/abilities.factory';
 import { CHECK_ABILITY_KEY } from '../decorators/check-abilities.decorator';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
@@ -12,7 +13,7 @@ export class AbilitiesGuard implements CanActivate {
     private abilityFactory: AbilityFactory,
   ) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     // Check if route is public
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
@@ -27,8 +28,8 @@ export class AbilitiesGuard implements CanActivate {
     const requiredAbilities =
       this.reflector.get<RequiredAbility[]>(CHECK_ABILITY_KEY, context.getHandler()) || [];
 
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
+    const request = context.switchToHttp().getRequest<{ user?: unknown }>();
+    const user = request.user as User | undefined;
 
     // Build user abilities
     const ability = this.abilityFactory.defineAbility(user);

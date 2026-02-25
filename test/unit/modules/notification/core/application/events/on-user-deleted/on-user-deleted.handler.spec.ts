@@ -12,10 +12,7 @@ describe('OnUserDeletedHandler', () => {
     const mockCommandBus = { execute: jest.fn().mockResolvedValue([]) };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        OnUserDeletedHandler,
-        { provide: CommandBus, useValue: mockCommandBus },
-      ],
+      providers: [OnUserDeletedHandler, { provide: CommandBus, useValue: mockCommandBus }],
     }).compile();
 
     handler = module.get<OnUserDeletedHandler>(OnUserDeletedHandler);

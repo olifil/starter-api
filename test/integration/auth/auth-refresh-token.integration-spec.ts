@@ -66,13 +66,18 @@ describe('Auth Refresh Token (Integration)', () => {
         .send({ refreshToken })
         .expect(201);
 
-      expect(response.body).toHaveProperty('accessToken');
-      expect(response.body).toHaveProperty('refreshToken');
-      expect(response.body).toHaveProperty('expiresIn');
-      expect(typeof response.body.accessToken).toBe('string');
-      expect(typeof response.body.refreshToken).toBe('string');
+      const body = response.body as {
+        accessToken: string;
+        refreshToken: string;
+        expiresIn: string;
+      };
+      expect(body).toHaveProperty('accessToken');
+      expect(body).toHaveProperty('refreshToken');
+      expect(body).toHaveProperty('expiresIn');
+      expect(typeof body.accessToken).toBe('string');
+      expect(typeof body.refreshToken).toBe('string');
       // Le nouveau refresh token doit être différent de l'ancien
-      expect(response.body.refreshToken).not.toBe(refreshToken);
+      expect(body.refreshToken).not.toBe(refreshToken);
     });
 
     it('should revoke the old refresh token after rotation', async () => {
@@ -98,9 +103,10 @@ describe('Auth Refresh Token (Integration)', () => {
         .expect(201);
 
       // Utiliser le nouveau access token pour accéder à une route protégée
+      const { accessToken } = refreshResponse.body as { accessToken: string };
       await request(app.getHttpServer())
         .get('/users/me')
-        .set('Authorization', `Bearer ${refreshResponse.body.accessToken}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
     });
 
@@ -126,11 +132,11 @@ describe('Auth Refresh Token (Integration)', () => {
         where: { email: 'refresh@example.com' },
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const expiredToken = await jwtService.signAsync(
         { sub: user!.id, email: user!.email },
         {
           secret: configService.get<string>('jwt.refreshSecret'),
+
           expiresIn: '-1h' as any,
         },
       );
@@ -156,13 +162,15 @@ describe('Auth Refresh Token (Integration)', () => {
         .expect(201);
 
       // Deuxième refresh avec le nouveau token
+      const firstBody = firstRefresh.body as { refreshToken: string };
       const secondRefresh = await request(app.getHttpServer())
         .post('/auth/refresh')
-        .send({ refreshToken: firstRefresh.body.refreshToken })
+        .send({ refreshToken: firstBody.refreshToken })
         .expect(201);
 
-      expect(secondRefresh.body.accessToken).toBeDefined();
-      expect(secondRefresh.body.refreshToken).not.toBe(firstRefresh.body.refreshToken);
+      const secondBody = secondRefresh.body as { accessToken: string; refreshToken: string };
+      expect(secondBody.accessToken).toBeDefined();
+      expect(secondBody.refreshToken).not.toBe(firstBody.refreshToken);
     });
   });
 });

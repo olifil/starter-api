@@ -19,8 +19,8 @@ describe('AbilitiesGuard', () => {
 
   const createMockExecutionContext = (
     user?: any,
-    isPublic = false,
-    requiredAbilities: any[] = [],
+    _isPublic = false,
+    _requiredAbilities: any[] = [],
   ): ExecutionContext => {
     return {
       switchToHttp: () => ({
@@ -34,16 +34,16 @@ describe('AbilitiesGuard', () => {
   };
 
   describe('canActivate', () => {
-    it('should allow access to public routes', async () => {
+    it('should allow access to public routes', () => {
       const context = createMockExecutionContext(undefined, true);
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(true);
 
-      const result = await guard.canActivate(context);
+      const result = guard.canActivate(context);
 
       expect(result).toBe(true);
     });
 
-    it('should allow access when no required abilities are specified', async () => {
+    it('should allow access when no required abilities are specified', () => {
       const user: Partial<User> = {
         id: '123',
         role: Role.AUTHENTICATED_USER,
@@ -55,12 +55,12 @@ describe('AbilitiesGuard', () => {
         .mockReturnValueOnce(undefined); // requiredAbilities
       jest.spyOn(reflector, 'get').mockReturnValue([]);
 
-      const result = await guard.canActivate(context);
+      const result = guard.canActivate(context);
 
       expect(result).toBe(true);
     });
 
-    it('should allow access when user has required abilities', async () => {
+    it('should allow access when user has required abilities', () => {
       const user: Partial<User> = {
         id: '123',
         role: Role.ADMIN,
@@ -71,12 +71,12 @@ describe('AbilitiesGuard', () => {
         .spyOn(reflector, 'get')
         .mockReturnValue([{ action: Action.Read, subject: Subject.User }]);
 
-      const result = await guard.canActivate(context);
+      const result = guard.canActivate(context);
 
       expect(result).toBe(true);
     });
 
-    it('should deny access when user does not have required abilities', async () => {
+    it('should deny access when user does not have required abilities', () => {
       const user: Partial<User> = {
         id: '123',
         role: Role.AUTHENTICATED_USER,
@@ -87,10 +87,10 @@ describe('AbilitiesGuard', () => {
         .spyOn(reflector, 'get')
         .mockReturnValue([{ action: Action.AccessConfig, subject: Subject.Config }]);
 
-      await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
+      expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
     });
 
-    it('should allow SUPER_ADMIN to access config', async () => {
+    it('should allow SUPER_ADMIN to access config', () => {
       const user: Partial<User> = {
         id: '123',
         role: Role.SUPER_ADMIN,
@@ -101,12 +101,12 @@ describe('AbilitiesGuard', () => {
         .spyOn(reflector, 'get')
         .mockReturnValue([{ action: Action.AccessConfig, subject: Subject.Config }]);
 
-      const result = await guard.canActivate(context);
+      const result = guard.canActivate(context);
 
       expect(result).toBe(true);
     });
 
-    it('should deny ADMIN access to config', async () => {
+    it('should deny ADMIN access to config', () => {
       const user: Partial<User> = {
         id: '123',
         role: Role.ADMIN,
@@ -117,7 +117,7 @@ describe('AbilitiesGuard', () => {
         .spyOn(reflector, 'get')
         .mockReturnValue([{ action: Action.AccessConfig, subject: Subject.Config }]);
 
-      await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
+      expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
     });
   });
 });

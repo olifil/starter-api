@@ -4,7 +4,6 @@ import { HealthController } from '@shared/infrastructure/health/health.controlle
 import {
   HealthCheckService,
   HealthCheckResult,
-  HealthCheckStatus,
   PrismaHealthIndicator,
   MemoryHealthIndicator,
   DiskHealthIndicator,
@@ -256,7 +255,7 @@ describe('HealthController', () => {
 
     it('should call prisma and redis ping checks for readiness', async () => {
       healthCheckService.check.mockImplementation(async (checks) => {
-        await Promise.all(checks.map((c) => c()));
+        await Promise.all(checks.map((c) => Promise.resolve(c())));
         return {} as HealthCheckResult;
       });
 

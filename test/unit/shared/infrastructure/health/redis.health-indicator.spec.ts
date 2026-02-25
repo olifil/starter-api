@@ -43,7 +43,6 @@ describe('RedisHealthIndicator', () => {
 
   describe('pingCheck', () => {
     it('should return up status when Redis responds', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const RedisMock = require('ioredis');
       RedisMock.mockImplementation(() => ({
         ping: jest.fn().mockResolvedValue('PONG'),
@@ -63,7 +62,6 @@ describe('RedisHealthIndicator', () => {
     });
 
     it('should throw HealthCheckError when Redis is down', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const RedisMock = require('ioredis');
       RedisMock.mockImplementation(() => ({
         ping: jest.fn().mockRejectedValue(new Error('ECONNREFUSED')),
