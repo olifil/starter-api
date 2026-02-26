@@ -1,7 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler, EventBus, IEvent } from '@nestjs/cqrs';
-import { ChangeEmailCommand } from './change-email.command';
+import { UpdateMeCommand } from './update-me.command';
 import { Email } from '@modules/user/core/domain/value-objects/email.vo';
+import { HashedPassword } from '@modules/user/core/domain/value-objects/hashed-password.vo';
 import {
   IUserRepository,
   USER_REPOSITORY,
@@ -17,8 +18,8 @@ import { InvalidCurrentPasswordException } from '../../exceptions/invalid-curren
 import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 @Injectable()
-@CommandHandler(ChangeEmailCommand)
-export class ChangeEmailService implements ICommandHandler<ChangeEmailCommand> {
+@CommandHandler(UpdateMeCommand)
+export class UpdateMeService implements ICommandHandler<UpdateMeCommand> {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
@@ -28,25 +29,39 @@ export class ChangeEmailService implements ICommandHandler<ChangeEmailCommand> {
     private readonly matomoService: MatomoService,
   ) {}
 
-  async execute(command: ChangeEmailCommand): Promise<UserProfileDto> {
+  async execute(command: UpdateMeCommand): Promise<UserProfileDto> {
     const user = await this.userRepository.findById(command.userId);
     if (!user) {
       throw new UserNotFoundException(command.userId);
     }
 
-    const isValid = await user.verifyPassword(command.currentPassword);
-    if (!isValid) {
-      throw new InvalidCurrentPasswordException();
+    const isSecurityUpdate = !!(command.newEmail || command.newPassword);
+
+    if (isSecurityUpdate) {
+      const isValid = await user.verifyPassword(command.currentPassword!);
+      if (!isValid) {
+        throw new InvalidCurrentPasswordException();
+      }
     }
 
-    const newEmail = new Email(command.newEmail);
-
-    const emailExists = await this.userRepository.existsByEmail(newEmail);
-    if (emailExists) {
-      throw new EmailAlreadyExistsException(command.newEmail);
+    if (command.firstName !== undefined || command.lastName !== undefined) {
+      user.updateProfile(command.firstName ?? user.firstName, command.lastName ?? user.lastName);
     }
 
-    user.changeEmail(newEmail);
+    if (command.newEmail) {
+      const newEmail = new Email(command.newEmail);
+      const emailExists = await this.userRepository.existsByEmail(newEmail);
+      if (emailExists) {
+        throw new EmailAlreadyExistsException(command.newEmail);
+      }
+      user.changeEmail(newEmail);
+    }
+
+    if (command.newPassword) {
+      const newPassword = await HashedPassword.fromPlainPassword(command.newPassword);
+      user.changePassword(newPassword);
+    }
+
     const updatedUser = await this.userRepository.update(user);
 
     updatedUser.domainEvents.forEach((event) => {
@@ -54,7 +69,10 @@ export class ChangeEmailService implements ICommandHandler<ChangeEmailCommand> {
     });
     updatedUser.clearDomainEvents();
 
-    await this.refreshTokenRepository.revokeAllByUserId(command.userId);
+    if (isSecurityUpdate) {
+      await this.refreshTokenRepository.revokeAllByUserId(command.userId);
+    }
+
     await this.matomoService.trackUserProfileUpdated(command.userId);
 
     return UserProfileDto.fromDomain(updatedUser);

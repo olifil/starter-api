@@ -15,8 +15,7 @@ import { ResetPasswordService } from './core/application/commands/reset-password
 import { VerifyEmailService } from './core/application/commands/verify-email/verify-email.service';
 import { LogoutService } from './core/application/commands/logout/logout.service';
 import { RevokeSessionsService } from './core/application/commands/revoke-sessions/revoke-sessions.service';
-import { ChangePasswordService } from './core/application/commands/change-password/change-password.service';
-import { ChangeEmailService } from './core/application/commands/change-email/change-email.service';
+import { UpdateMeService } from './core/application/commands/update-me/update-me.service';
 
 // Infrastructure - Repositories
 import { REFRESH_TOKEN_REPOSITORY } from './core/domain/repositories/refresh-token.repository.interface';
@@ -38,8 +37,7 @@ const CommandServices = [
   VerifyEmailService,
   LogoutService,
   RevokeSessionsService,
-  ChangePasswordService,
-  ChangeEmailService,
+  UpdateMeService,
 ];
 const QueryHandlers = [LoginHandler];
 
