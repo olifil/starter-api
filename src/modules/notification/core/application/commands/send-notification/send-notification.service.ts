@@ -95,7 +95,7 @@ export class SendNotificationService implements ICommandHandler<SendNotification
         await this.notificationRepository.update(saved);
 
         // Déterminer le destinataire selon le canal
-        const to = this.resolveRecipient(channel, user);
+        const to = this.resolveRecipient(channel, user, command.recipientEmailOverride);
 
         // Enqueue pour traitement async — fallback direct si la queue est indisponible
         try {
@@ -141,10 +141,11 @@ export class SendNotificationService implements ICommandHandler<SendNotification
   private resolveRecipient(
     channel: string,
     user: { id: string; email: { value: string } },
+    recipientEmailOverride?: string,
   ): string {
     switch (channel) {
       case 'EMAIL':
-        return user.email.value;
+        return recipientEmailOverride ?? user.email.value;
       case 'SMS':
         return ''; // TODO: user.phoneNumber
       case 'PUSH':

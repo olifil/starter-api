@@ -19,6 +19,8 @@ import { VerifyEmailCommand } from '../../core/application/commands/verify-email
 import { LogoutCommand } from '../../core/application/commands/logout/logout.command';
 import { RevokeSessionsCommand } from '../../core/application/commands/revoke-sessions/revoke-sessions.command';
 import { RevokeSessionsDto } from '../../core/application/dtos/revoke-sessions.dto';
+import { ConfirmEmailChangeCommand } from '../../core/application/commands/confirm-email-change/confirm-email-change.command';
+import { ConfirmEmailChangeDto } from '../../core/application/dtos/confirm-email-change.dto';
 import { LoginQuery } from '../../core/application/queries/login/login.query';
 
 @Controller('auth')
@@ -106,6 +108,17 @@ export class AuthHttpController {
   @ApiResponse({ status: 400, description: 'Token invalide ou expiré' })
   async verifyEmail(@Body() dto: VerifyEmailDto): Promise<void> {
     await this.commandBus.execute(new VerifyEmailCommand(dto.token));
+  }
+
+  @Post('confirm-email-change')
+  @SkipThrottle({ strict: true })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "Confirmer le changement d'email avec le token reçu par email" })
+  @ApiResponse({ status: 204, description: 'Email mis à jour avec succès' })
+  @ApiResponse({ status: 400, description: 'Token invalide ou expiré' })
+  @ApiResponse({ status: 409, description: 'Email déjà utilisé' })
+  async confirmEmailChange(@Body() dto: ConfirmEmailChangeDto): Promise<void> {
+    await this.commandBus.execute(new ConfirmEmailChangeCommand(dto.token));
   }
 
   @Post('logout')

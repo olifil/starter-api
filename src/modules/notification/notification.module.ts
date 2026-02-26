@@ -27,6 +27,7 @@ import { OnUserCreatedHandler } from './core/application/events/on-user-created/
 import { OnPasswordResetRequestedHandler } from './core/application/events/on-password-reset-requested/on-password-reset-requested.handler';
 import { OnAccountVerifiedHandler } from './core/application/events/on-account-verified/on-account-verified.handler';
 import { OnUserDeletedHandler } from './core/application/events/on-user-deleted/on-user-deleted.handler';
+import { OnEmailChangeRequestedHandler } from './core/application/events/on-email-change-requested/on-email-change-requested.handler';
 
 // Infrastructure - Repositories
 import { PrismaNotificationRepository } from './infrastructure/persistence/repositories/prisma-notification.repository';
@@ -74,6 +75,7 @@ const EventHandlers = [
   OnPasswordResetRequestedHandler,
   OnAccountVerifiedHandler,
   OnUserDeletedHandler,
+  OnEmailChangeRequestedHandler,
 ];
 
 const ChannelSenders = [

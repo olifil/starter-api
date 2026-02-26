@@ -1,5 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler, EventBus, IEvent } from '@nestjs/cqrs';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { UpdateMeCommand } from './update-me.command';
 import { Email } from '@modules/user/core/domain/value-objects/email.vo';
 import { HashedPassword } from '@modules/user/core/domain/value-objects/hashed-password.vo';
@@ -15,6 +17,7 @@ import { UserProfileDto } from '@modules/user/core/application/dtos/user-profile
 import { UserNotFoundException } from '@modules/user/core/application/exceptions/user-not-found.exception';
 import { EmailAlreadyExistsException } from '@modules/user/core/application/exceptions/email-already-exists.exception';
 import { InvalidCurrentPasswordException } from '../../exceptions/invalid-current-password.exception';
+import { EmailChangeRequestedEvent } from '../../../domain/events/email-change-requested.event';
 import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
 @Injectable()
@@ -26,6 +29,8 @@ export class UpdateMeService implements ICommandHandler<UpdateMeCommand> {
     @Inject(REFRESH_TOKEN_REPOSITORY)
     private readonly refreshTokenRepository: IRefreshTokenRepository,
     private readonly eventBus: EventBus,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
     private readonly matomoService: MatomoService,
   ) {}
 
@@ -35,9 +40,9 @@ export class UpdateMeService implements ICommandHandler<UpdateMeCommand> {
       throw new UserNotFoundException(command.userId);
     }
 
-    const isSecurityUpdate = !!(command.newEmail || command.newPassword);
+    const needsPasswordVerification = !!(command.newEmail || command.newPassword);
 
-    if (isSecurityUpdate) {
+    if (needsPasswordVerification) {
       const isValid = await user.verifyPassword(command.currentPassword!);
       if (!isValid) {
         throw new InvalidCurrentPasswordException();
@@ -48,13 +53,33 @@ export class UpdateMeService implements ICommandHandler<UpdateMeCommand> {
       user.updateProfile(command.firstName ?? user.firstName, command.lastName ?? user.lastName);
     }
 
+    // Le changement d'email passe par un flux de vérification (token envoyé à la nouvelle adresse)
     if (command.newEmail) {
       const newEmail = new Email(command.newEmail);
       const emailExists = await this.userRepository.existsByEmail(newEmail);
       if (emailExists) {
         throw new EmailAlreadyExistsException(command.newEmail);
       }
-      user.changeEmail(newEmail);
+
+      const emailChangeSecret =
+        this.configService.get<string>('jwt.resetSecret') ??
+        this.configService.get<string>('jwt.secret')!;
+
+      const expiresIn = '1h';
+      const confirmationToken = await this.jwtService.signAsync(
+        { sub: user.id, newEmail: command.newEmail, type: 'email-change' },
+        { secret: emailChangeSecret, expiresIn },
+      );
+
+      this.eventBus.publish(
+        new EmailChangeRequestedEvent(
+          user.id,
+          user.firstName,
+          command.newEmail,
+          confirmationToken,
+          expiresIn,
+        ),
+      );
     }
 
     if (command.newPassword) {
@@ -69,7 +94,7 @@ export class UpdateMeService implements ICommandHandler<UpdateMeCommand> {
     });
     updatedUser.clearDomainEvents();
 
-    if (isSecurityUpdate) {
+    if (command.newPassword) {
       await this.refreshTokenRepository.revokeAllByUserId(command.userId);
     }
 

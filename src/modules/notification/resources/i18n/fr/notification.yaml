@@ -16,6 +16,12 @@ account-verified:
   sms: "Votre compte {appName} est vérifié."
   push: "Votre compte a été vérifié avec succès !"
 
+email-change-verification:
+  subject: "Confirmez votre nouvelle adresse email"
+  body: "<p>Bonjour {firstName},</p><p>Vous avez demandé la modification de votre adresse email. Pour confirmer ce changement, cliquez sur le lien ci-dessous.</p><p>Ce lien expire dans {expiresIn}.</p><p style=\"text-align: center; margin: 32px 0;\"><a href=\"{confirmationLink}\" style=\"background-color: #3b82f6; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 15px; display: inline-block;\">Confirmer mon email</a></p><p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>"
+  sms: "Confirmez votre changement d'email {appName} : {confirmationLink}"
+  push: "Confirmez votre nouvelle adresse email."
+
 account-deleted:
   subject: "Votre compte {appName} a été supprimé"
   body: "<p>Bonjour {firstName},</p><p>Nous confirmons que votre compte sur <strong>{appName}</strong> a bien été supprimé. L'ensemble de vos données personnelles a été effacé de nos systèmes.</p><p>Nous sommes désolés de vous voir partir. Si vous changez d'avis, vous pouvez toujours créer un nouveau compte.</p><p>À bientôt,<br/>L'équipe {appName}</p>"

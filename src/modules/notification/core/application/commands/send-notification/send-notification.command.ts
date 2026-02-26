@@ -8,5 +8,6 @@ export class SendNotificationCommand implements ICommand {
     public readonly channels: NotificationChannel[],
     public readonly variables: Record<string, unknown> = {},
     public readonly locale: string = 'fr',
+    public readonly recipientEmailOverride?: string,
   ) {}
 }
