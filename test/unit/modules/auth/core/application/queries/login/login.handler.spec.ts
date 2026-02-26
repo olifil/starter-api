@@ -73,7 +73,7 @@ describe('LoginHandler', () => {
     };
 
     const mockJwtService: Partial<JwtService> = {
-      sign: jest.fn(),
+      signAsync: jest.fn(),
     };
 
     const mockConfigService: Partial<ConfigService> = {
@@ -122,8 +122,8 @@ describe('LoginHandler', () => {
       configService.get.mockImplementation((key: string, defaultValue?: unknown) =>
         key in mockConfig ? mockConfig[key] : defaultValue,
       );
-      jwtService.sign.mockReturnValueOnce('access-token');
-      jwtService.sign.mockReturnValueOnce('refresh-token');
+      jwtService.signAsync.mockResolvedValueOnce('access-token');
+      jwtService.signAsync.mockResolvedValueOnce('refresh-token');
       matomoService.trackUserLogin.mockResolvedValue(undefined);
 
       // Act
@@ -133,12 +133,12 @@ describe('LoginHandler', () => {
       expect(userRepository.findByEmail).toHaveBeenCalledWith(
         expect.objectContaining({ value: 'test@example.com' }),
       );
-      expect(jwtService.sign).toHaveBeenCalledTimes(2);
-      expect(jwtService.sign).toHaveBeenCalledWith(
+      expect(jwtService.signAsync).toHaveBeenCalledTimes(2);
+      expect(jwtService.signAsync).toHaveBeenCalledWith(
         { sub: 'user-123', email: 'test@example.com' },
         { secret: 'test-secret', expiresIn: '15m' },
       );
-      expect(jwtService.sign).toHaveBeenCalledWith(
+      expect(jwtService.signAsync).toHaveBeenCalledWith(
         { sub: 'user-123', email: 'test@example.com', jti: expect.any(String) },
         { secret: 'test-refresh-secret', expiresIn: '7d' },
       );
@@ -157,7 +157,7 @@ describe('LoginHandler', () => {
 
       // Act & Assert
       await expect(handler.execute(query)).rejects.toThrow(InvalidCredentialsException);
-      expect(jwtService.sign).not.toHaveBeenCalled();
+      expect(jwtService.signAsync).not.toHaveBeenCalled();
       expect(matomoService.trackUserLogin).not.toHaveBeenCalled();
     });
 
@@ -170,7 +170,7 @@ describe('LoginHandler', () => {
 
       // Act & Assert
       await expect(handler.execute(query)).rejects.toThrow(InvalidCredentialsException);
-      expect(jwtService.sign).not.toHaveBeenCalled();
+      expect(jwtService.signAsync).not.toHaveBeenCalled();
       expect(matomoService.trackUserLogin).not.toHaveBeenCalled();
     });
 
@@ -183,7 +183,7 @@ describe('LoginHandler', () => {
 
       // Act & Assert
       await expect(handler.execute(query)).rejects.toThrow(EmailNotVerifiedException);
-      expect(jwtService.sign).not.toHaveBeenCalled();
+      expect(jwtService.signAsync).not.toHaveBeenCalled();
       expect(matomoService.trackUserLogin).not.toHaveBeenCalled();
     });
 
@@ -207,7 +207,7 @@ describe('LoginHandler', () => {
       configService.get.mockImplementation((key: string, defaultValue?: unknown) =>
         key in mockConfig ? mockConfig[key] : defaultValue,
       );
-      jwtService.sign.mockReturnValue('token');
+      jwtService.signAsync.mockResolvedValue('token');
       matomoService.trackUserLogin.mockResolvedValue(undefined);
 
       // Act
@@ -234,7 +234,7 @@ describe('LoginHandler', () => {
         };
         return config[key];
       });
-      jwtService.sign.mockReturnValue('token');
+      jwtService.signAsync.mockResolvedValue('token');
       matomoService.trackUserLogin.mockResolvedValue(undefined);
 
       // Act
@@ -253,14 +253,14 @@ describe('LoginHandler', () => {
       configService.get.mockImplementation((key: string, defaultValue?: unknown) =>
         key in mockConfig ? mockConfig[key] : defaultValue,
       );
-      jwtService.sign.mockReturnValue('token');
+      jwtService.signAsync.mockResolvedValue('token');
       matomoService.trackUserLogin.mockResolvedValue(undefined);
 
       // Act
       await handler.execute(query);
 
       // Assert
-      expect(jwtService.sign).toHaveBeenCalledWith(
+      expect(jwtService.signAsync).toHaveBeenCalledWith(
         expect.objectContaining({ sub: 'user-123', email: 'test@example.com' }),
         expect.any(Object),
       );

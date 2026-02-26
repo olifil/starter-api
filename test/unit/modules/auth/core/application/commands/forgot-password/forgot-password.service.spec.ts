@@ -40,7 +40,7 @@ describe('ForgotPasswordService', () => {
     };
 
     const mockJwtService = {
-      sign: jest.fn().mockReturnValue('reset-token-abc'),
+      signAsync: jest.fn().mockResolvedValue('reset-token-abc'),
     };
 
     const mockConfigService = {
@@ -80,7 +80,7 @@ describe('ForgotPasswordService', () => {
 
       await service.execute(new ForgotPasswordCommand('john@example.com'));
 
-      expect(jwtService.sign).toHaveBeenCalledWith(
+      expect(jwtService.signAsync).toHaveBeenCalledWith(
         { sub: 'user-1', email: 'john@example.com', type: 'password-reset' },
         expect.objectContaining({ secret: 'reset-secret' }),
       );

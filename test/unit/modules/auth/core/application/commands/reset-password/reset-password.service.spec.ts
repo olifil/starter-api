@@ -37,7 +37,7 @@ describe('ResetPasswordService', () => {
     };
 
     const mockJwtService = {
-      verify: jest.fn(),
+      verifyAsync: jest.fn(),
     };
 
     const mockConfigService = {
@@ -70,7 +70,7 @@ describe('ResetPasswordService', () => {
 
   describe('execute', () => {
     it('should reset password when token is valid', async () => {
-      jwtService.verify.mockReturnValue(validPayload);
+      jwtService.verifyAsync.mockResolvedValue(validPayload);
       userRepository.findById.mockResolvedValue(mockUser);
       userRepository.update.mockResolvedValue(mockUser);
 
@@ -81,9 +81,7 @@ describe('ResetPasswordService', () => {
     });
 
     it('should throw InvalidResetTokenException when JWT is invalid', async () => {
-      jwtService.verify.mockImplementation(() => {
-        throw new Error('invalid token');
-      });
+      jwtService.verifyAsync.mockRejectedValue(new Error('invalid token'));
 
       await expect(
         service.execute(new ResetPasswordCommand('bad-token', 'NewPassword1!')),
@@ -91,7 +89,7 @@ describe('ResetPasswordService', () => {
     });
 
     it('should throw InvalidResetTokenException when token type is not password-reset', async () => {
-      jwtService.verify.mockReturnValue({
+      jwtService.verifyAsync.mockResolvedValue({
         sub: 'user-1',
         email: 'john@example.com',
         type: 'access',
@@ -103,7 +101,7 @@ describe('ResetPasswordService', () => {
     });
 
     it('should throw InvalidResetTokenException when user not found', async () => {
-      jwtService.verify.mockReturnValue(validPayload);
+      jwtService.verifyAsync.mockResolvedValue(validPayload);
       userRepository.findById.mockResolvedValue(null);
 
       await expect(
@@ -112,7 +110,7 @@ describe('ResetPasswordService', () => {
     });
 
     it('should call changePassword on the user entity', async () => {
-      jwtService.verify.mockReturnValue(validPayload);
+      jwtService.verifyAsync.mockResolvedValue(validPayload);
       userRepository.findById.mockResolvedValue(mockUser);
       userRepository.update.mockResolvedValue(mockUser);
 

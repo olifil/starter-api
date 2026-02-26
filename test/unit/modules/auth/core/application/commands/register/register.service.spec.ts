@@ -49,7 +49,7 @@ describe('RegisterService', () => {
     };
 
     const mockJwtService: Partial<JwtService> = {
-      sign: jest.fn(),
+      signAsync: jest.fn(),
     };
 
     const mockConfigService: Partial<ConfigService> = {
@@ -97,7 +97,7 @@ describe('RegisterService', () => {
       configService.get.mockImplementation((key: string, defaultValue?: unknown) =>
         key in mockConfig ? mockConfig[key] : defaultValue,
       );
-      jwtService.sign.mockReturnValueOnce('verification-token');
+      jwtService.signAsync.mockResolvedValueOnce('verification-token');
       matomoService.trackUserRegistration.mockResolvedValue(undefined);
 
       // Act
@@ -109,8 +109,8 @@ describe('RegisterService', () => {
       );
       expect(userRepository.save).toHaveBeenCalled();
       // Seul le token de vérification d'email est généré (plus d'access/refresh token)
-      expect(jwtService.sign).toHaveBeenCalledTimes(1);
-      expect(jwtService.sign).toHaveBeenCalledWith(
+      expect(jwtService.signAsync).toHaveBeenCalledTimes(1);
+      expect(jwtService.signAsync).toHaveBeenCalledWith(
         { sub: 'user-123', email: 'test@example.com', type: 'email-verification' },
         expect.objectContaining({ secret: 'test-verification-secret' }),
       );
@@ -126,7 +126,7 @@ describe('RegisterService', () => {
       await expect(service.execute(command)).rejects.toThrow(TermsNotAcceptedException);
       expect(userRepository.existsByEmail).not.toHaveBeenCalled();
       expect(userRepository.save).not.toHaveBeenCalled();
-      expect(jwtService.sign).not.toHaveBeenCalled();
+      expect(jwtService.signAsync).not.toHaveBeenCalled();
     });
 
     it('should throw EmailAlreadyExistsException when email is already taken', async () => {
@@ -137,7 +137,7 @@ describe('RegisterService', () => {
       // Act & Assert
       await expect(service.execute(command)).rejects.toThrow(EmailAlreadyExistsException);
       expect(userRepository.save).not.toHaveBeenCalled();
-      expect(jwtService.sign).not.toHaveBeenCalled();
+      expect(jwtService.signAsync).not.toHaveBeenCalled();
     });
 
     it('should publish a UserCreatedEvent enriched with the verification token', async () => {
@@ -149,7 +149,7 @@ describe('RegisterService', () => {
       configService.get.mockImplementation((key: string, defaultValue?: unknown) =>
         key in mockConfig ? mockConfig[key] : defaultValue,
       );
-      jwtService.sign.mockReturnValueOnce('verification-token');
+      jwtService.signAsync.mockResolvedValueOnce('verification-token');
       matomoService.trackUserRegistration.mockResolvedValue(undefined);
 
       // Act
@@ -176,7 +176,7 @@ describe('RegisterService', () => {
       configService.get.mockImplementation((key: string, defaultValue?: unknown) =>
         key in mockConfig ? mockConfig[key] : defaultValue,
       );
-      jwtService.sign.mockReturnValueOnce('verification-token');
+      jwtService.signAsync.mockResolvedValueOnce('verification-token');
       matomoService.trackUserRegistration.mockResolvedValue(undefined);
 
       // Act
@@ -196,7 +196,7 @@ describe('RegisterService', () => {
       configService.get.mockImplementation((key: string, defaultValue?: unknown) =>
         key in mockConfig ? mockConfig[key] : defaultValue,
       );
-      jwtService.sign.mockReturnValue('token');
+      jwtService.signAsync.mockResolvedValue('token');
       matomoService.trackUserRegistration.mockResolvedValue(undefined);
 
       // Act
@@ -217,7 +217,7 @@ describe('RegisterService', () => {
       configService.get.mockImplementation((key: string, defaultValue?: unknown) =>
         key in mockConfig ? mockConfig[key] : defaultValue,
       );
-      jwtService.sign.mockReturnValue('token');
+      jwtService.signAsync.mockResolvedValue('token');
       matomoService.trackUserRegistration.mockResolvedValue(undefined);
 
       // Act
@@ -237,7 +237,7 @@ describe('RegisterService', () => {
       configService.get.mockImplementation((key: string, defaultValue?: unknown) =>
         key in mockConfig ? mockConfig[key] : defaultValue,
       );
-      jwtService.sign.mockReturnValue('token');
+      jwtService.signAsync.mockResolvedValue('token');
       matomoService.trackUserRegistration.mockResolvedValue(undefined);
 
       // Act

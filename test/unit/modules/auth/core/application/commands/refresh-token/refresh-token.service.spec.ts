@@ -66,8 +66,8 @@ describe('RefreshTokenService', () => {
         {
           provide: JwtService,
           useValue: {
-            verify: jest.fn(),
-            sign: jest.fn(),
+            verifyAsync: jest.fn(),
+            signAsync: jest.fn(),
           },
         },
         {
@@ -97,12 +97,12 @@ describe('RefreshTokenService', () => {
       const command = new RefreshTokenCommand('valid-refresh-token');
       const mockUser = createMockUser();
 
-      jwtService.verify.mockReturnValue({ sub: 'user-123', email: 'test@example.com' });
+      jwtService.verifyAsync.mockResolvedValue({ sub: 'user-123', email: 'test@example.com' });
       refreshTokenRepository.findByToken.mockResolvedValue(storedToken);
       userRepository.findById.mockResolvedValue(mockUser);
       refreshTokenRepository.revoke.mockResolvedValue(undefined);
-      jwtService.sign.mockReturnValueOnce('new-access-token');
-      jwtService.sign.mockReturnValueOnce('new-refresh-token');
+      jwtService.signAsync.mockResolvedValueOnce('new-access-token');
+      jwtService.signAsync.mockResolvedValueOnce('new-refresh-token');
       refreshTokenRepository.save.mockResolvedValue(undefined);
       configService.get.mockImplementation((key: string, defaultValue?: unknown) => {
         const config: Record<string, string> = {
@@ -118,13 +118,13 @@ describe('RefreshTokenService', () => {
       const result = await service.execute(command);
 
       // Assert
-      expect(jwtService.verify).toHaveBeenCalledWith('valid-refresh-token', {
+      expect(jwtService.verifyAsync).toHaveBeenCalledWith('valid-refresh-token', {
         secret: 'test-refresh-secret',
       });
       expect(refreshTokenRepository.findByToken).toHaveBeenCalledWith('valid-refresh-token');
       expect(userRepository.findById).toHaveBeenCalledWith('user-123');
       expect(refreshTokenRepository.revoke).toHaveBeenCalledWith('token-id-1');
-      expect(jwtService.sign).toHaveBeenCalledTimes(2);
+      expect(jwtService.signAsync).toHaveBeenCalledTimes(2);
       expect(refreshTokenRepository.save).toHaveBeenCalledWith(
         'new-refresh-token',
         'user-123',
@@ -140,9 +140,7 @@ describe('RefreshTokenService', () => {
     it('should throw InvalidRefreshTokenException when JWT verification fails', async () => {
       // Arrange
       const command = new RefreshTokenCommand('invalid-jwt');
-      jwtService.verify.mockImplementation(() => {
-        throw new Error('jwt expired');
-      });
+      jwtService.verifyAsync.mockRejectedValue(new Error('jwt expired'));
 
       // Act & Assert
       await expect(service.execute(command)).rejects.toThrow(InvalidRefreshTokenException);
@@ -152,7 +150,7 @@ describe('RefreshTokenService', () => {
     it('should throw InvalidRefreshTokenException when token not found in DB', async () => {
       // Arrange
       const command = new RefreshTokenCommand('valid-but-not-in-db');
-      jwtService.verify.mockReturnValue({ sub: 'user-123', email: 'test@example.com' });
+      jwtService.verifyAsync.mockResolvedValue({ sub: 'user-123', email: 'test@example.com' });
       refreshTokenRepository.findByToken.mockResolvedValue(null);
       configService.get.mockReturnValue('test-value');
 
@@ -164,7 +162,7 @@ describe('RefreshTokenService', () => {
     it('should throw InvalidRefreshTokenException when token is revoked', async () => {
       // Arrange
       const command = new RefreshTokenCommand('revoked-token');
-      jwtService.verify.mockReturnValue({ sub: 'user-123', email: 'test@example.com' });
+      jwtService.verifyAsync.mockResolvedValue({ sub: 'user-123', email: 'test@example.com' });
       refreshTokenRepository.findByToken.mockResolvedValue({
         ...storedToken,
         token: 'revoked-token',
@@ -180,7 +178,7 @@ describe('RefreshTokenService', () => {
     it('should throw InvalidRefreshTokenException when user no longer exists', async () => {
       // Arrange
       const command = new RefreshTokenCommand('valid-refresh-token');
-      jwtService.verify.mockReturnValue({ sub: 'deleted-user', email: 'test@example.com' });
+      jwtService.verifyAsync.mockResolvedValue({ sub: 'deleted-user', email: 'test@example.com' });
       refreshTokenRepository.findByToken.mockResolvedValue({
         ...storedToken,
         userId: 'deleted-user',
@@ -199,13 +197,13 @@ describe('RefreshTokenService', () => {
       const mockUser = createMockUser();
       const callOrder: string[] = [];
 
-      jwtService.verify.mockReturnValue({ sub: 'user-123', email: 'test@example.com' });
+      jwtService.verifyAsync.mockResolvedValue({ sub: 'user-123', email: 'test@example.com' });
       refreshTokenRepository.findByToken.mockResolvedValue(storedToken);
       userRepository.findById.mockResolvedValue(mockUser);
       refreshTokenRepository.revoke.mockImplementation(async () => {
         callOrder.push('revoke');
       });
-      jwtService.sign.mockReturnValue('new-token');
+      jwtService.signAsync.mockResolvedValue('new-token');
       refreshTokenRepository.save.mockImplementation(async () => {
         callOrder.push('save');
       });

@@ -103,10 +103,10 @@ describe('User Profile (Integration)', () => {
     });
   });
 
-  describe('PUT /users/me', () => {
+  describe('PATCH /users/me', () => {
     it('should update current user profile', async () => {
       const response = await request(app.getHttpServer())
-        .put('/users/me')
+        .patch('/users/me')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           firstName: 'Jane',
@@ -128,7 +128,7 @@ describe('User Profile (Integration)', () => {
 
     it('should update only firstName', async () => {
       const response = await request(app.getHttpServer())
-        .put('/users/me')
+        .patch('/users/me')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           firstName: 'Jane',
@@ -141,7 +141,7 @@ describe('User Profile (Integration)', () => {
 
     it('should update only lastName', async () => {
       const response = await request(app.getHttpServer())
-        .put('/users/me')
+        .patch('/users/me')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           lastName: 'Smith',
@@ -154,7 +154,7 @@ describe('User Profile (Integration)', () => {
 
     it('should return 401 when not authenticated', async () => {
       await request(app.getHttpServer())
-        .put('/users/me')
+        .patch('/users/me')
         .send({
           firstName: 'Jane',
           lastName: 'Smith',
@@ -164,7 +164,7 @@ describe('User Profile (Integration)', () => {
 
     it('should return 400 with invalid data', async () => {
       await request(app.getHttpServer())
-        .put('/users/me')
+        .patch('/users/me')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           firstName: 'A'.repeat(51), // Too long

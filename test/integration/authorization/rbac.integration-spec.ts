@@ -156,7 +156,7 @@ describe('RBAC Authorization (Integration)', () => {
 
     it('should allow user to update their own profile', async () => {
       const response = await request(app.getHttpServer())
-        .put('/users/me')
+        .patch('/users/me')
         .set('Authorization', `Bearer ${authenticatedUserToken}`)
         .send({
           firstName: 'UpdatedName',

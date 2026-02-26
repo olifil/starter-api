@@ -39,7 +39,7 @@ describe('VerifyEmailService', () => {
       update: jest.fn(),
     };
 
-    const mockJwtService = { verify: jest.fn() };
+    const mockJwtService = { verifyAsync: jest.fn() };
 
     const mockConfigService = {
       get: jest.fn().mockImplementation((key: string, defaultValue?: unknown) => {
@@ -75,7 +75,7 @@ describe('VerifyEmailService', () => {
 
   describe('execute', () => {
     it('should verify email when token is valid', async () => {
-      jwtService.verify.mockReturnValue(validPayload);
+      jwtService.verifyAsync.mockResolvedValue(validPayload);
       userRepository.findById.mockResolvedValue(mockUser);
       userRepository.update.mockResolvedValue(mockUser);
 
@@ -86,7 +86,7 @@ describe('VerifyEmailService', () => {
     });
 
     it('should call verifyEmail() on the user entity', async () => {
-      jwtService.verify.mockReturnValue(validPayload);
+      jwtService.verifyAsync.mockResolvedValue(validPayload);
       userRepository.findById.mockResolvedValue(mockUser);
       userRepository.update.mockResolvedValue(mockUser);
 
@@ -98,7 +98,7 @@ describe('VerifyEmailService', () => {
     });
 
     it('should publish AccountVerifiedEvent after successful verification', async () => {
-      jwtService.verify.mockReturnValue(validPayload);
+      jwtService.verifyAsync.mockResolvedValue(validPayload);
       userRepository.findById.mockResolvedValue(mockUser);
       userRepository.update.mockResolvedValue(mockUser);
 
@@ -112,9 +112,7 @@ describe('VerifyEmailService', () => {
     });
 
     it('should throw InvalidVerificationTokenException when JWT is invalid', async () => {
-      jwtService.verify.mockImplementation(() => {
-        throw new Error('invalid token');
-      });
+      jwtService.verifyAsync.mockRejectedValue(new Error('invalid token'));
 
       await expect(service.execute(new VerifyEmailCommand('bad-token'))).rejects.toThrow(
         InvalidVerificationTokenException,
@@ -122,7 +120,7 @@ describe('VerifyEmailService', () => {
     });
 
     it('should throw InvalidVerificationTokenException when token type is not email-verification', async () => {
-      jwtService.verify.mockReturnValue({
+      jwtService.verifyAsync.mockResolvedValue({
         sub: 'user-1',
         email: 'john@example.com',
         type: 'access',
@@ -134,7 +132,7 @@ describe('VerifyEmailService', () => {
     });
 
     it('should throw InvalidVerificationTokenException when user not found', async () => {
-      jwtService.verify.mockReturnValue(validPayload);
+      jwtService.verifyAsync.mockResolvedValue(validPayload);
       userRepository.findById.mockResolvedValue(null);
 
       await expect(service.execute(new VerifyEmailCommand('valid-token'))).rejects.toThrow(

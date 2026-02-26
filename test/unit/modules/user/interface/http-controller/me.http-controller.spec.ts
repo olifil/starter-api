@@ -2,9 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { MeHttpController } from '@modules/user/interface/http-controller/me.http-controller';
 import { GetUserQuery } from '@modules/user/core/application/queries/get-user/get-user.query';
-import { UpdateUserCommand } from '@modules/user/core/application/commands/update-user/update-user.command';
+import { UpdateMeCommand } from '@modules/auth/core/application/commands/update-me/update-me.command';
+import { DeleteUserCommand } from '@modules/user/core/application/commands/delete-user/delete-user.command';
 import { UserProfileDto } from '@modules/user/core/application/dtos/user-profile.dto';
-import { UpdateUserDto } from '@modules/user/core/application/dtos/update-user.dto';
+import { UpdateMeDto } from '@modules/user/core/application/dtos/update-me.dto';
 
 describe('MeHttpController', () => {
   let controller: MeHttpController;
@@ -38,14 +39,8 @@ describe('MeHttpController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MeHttpController],
       providers: [
-        {
-          provide: QueryBus,
-          useValue: mockQueryBus,
-        },
-        {
-          provide: CommandBus,
-          useValue: mockCommandBus,
-        },
+        { provide: QueryBus, useValue: mockQueryBus },
+        { provide: CommandBus, useValue: mockCommandBus },
       ],
     }).compile();
 
@@ -68,17 +63,13 @@ describe('MeHttpController', () => {
 
       // Assert
       expect(queryBus.execute).toHaveBeenCalledWith(expect.any(GetUserQuery));
-      expect(queryBus.execute).toHaveBeenCalledWith(
-        expect.objectContaining({
-          userId: '123',
-        }),
-      );
+      expect(queryBus.execute).toHaveBeenCalledWith(expect.objectContaining({ userId: '123' }));
       expect(result).toEqual(mockUserProfile);
     });
 
     it('should use userId from current user context', async () => {
       // Arrange
-      const currentUser = { userId: 'user-456' };
+      const currentUser = { userId: 'user-456', email: 'other@example.com' };
       queryBus.execute.mockResolvedValue(mockUserProfile);
 
       // Act
@@ -86,28 +77,25 @@ describe('MeHttpController', () => {
 
       // Assert
       expect(queryBus.execute).toHaveBeenCalledWith(
-        expect.objectContaining({
-          userId: 'user-456',
-        }),
+        expect.objectContaining({ userId: 'user-456' }),
       );
     });
   });
 
-  describe('updateMyProfile', () => {
-    it('should update current user profile', async () => {
+  describe('updateMe', () => {
+    it('should dispatch UpdateMeCommand and return updated profile', async () => {
       // Arrange
-      const updateDto: UpdateUserDto = {
-        firstName: 'Jane',
-        lastName: 'Smith',
-      };
+      const dto = new UpdateMeDto();
+      dto.firstName = 'Jane';
+      dto.lastName = 'Smith';
       const updatedProfile = { ...mockUserProfile, firstName: 'Jane', lastName: 'Smith' };
       commandBus.execute.mockResolvedValue(updatedProfile);
 
       // Act
-      const result = await controller.updateMyProfile(mockCurrentUser, updateDto);
+      const result = await controller.updateMe(mockCurrentUser, dto);
 
       // Assert
-      expect(commandBus.execute).toHaveBeenCalledWith(expect.any(UpdateUserCommand));
+      expect(commandBus.execute).toHaveBeenCalledWith(expect.any(UpdateMeCommand));
       expect(commandBus.execute).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: '123',
@@ -118,73 +106,51 @@ describe('MeHttpController', () => {
       expect(result).toEqual(updatedProfile);
     });
 
+    it('should pass newEmail, newPassword and currentPassword to the command', async () => {
+      // Arrange
+      const dto = new UpdateMeDto();
+      dto.newEmail = 'new@example.com';
+      dto.newPassword = 'NewPassword1!';
+      dto.currentPassword = 'OldPassword1!';
+      commandBus.execute.mockResolvedValue(mockUserProfile);
+
+      // Act
+      await controller.updateMe(mockCurrentUser, dto);
+
+      // Assert
+      expect(commandBus.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: '123',
+          newEmail: 'new@example.com',
+          newPassword: 'NewPassword1!',
+          currentPassword: 'OldPassword1!',
+        }),
+      );
+    });
+
     it('should use userId from current user context', async () => {
       // Arrange
-      const currentUser = { userId: 'user-789' };
-      const updateDto: UpdateUserDto = {
-        firstName: 'Jane',
-        lastName: 'Smith',
-      };
+      const currentUser = { userId: 'user-789', email: 'other@example.com' };
+      const dto = new UpdateMeDto();
+      dto.firstName = 'Jane';
       commandBus.execute.mockResolvedValue(mockUserProfile);
 
       // Act
-      await controller.updateMyProfile(currentUser, updateDto);
+      await controller.updateMe(currentUser, dto);
 
       // Assert
       expect(commandBus.execute).toHaveBeenCalledWith(
-        expect.objectContaining({
-          userId: 'user-789',
-        }),
+        expect.objectContaining({ userId: 'user-789' }),
       );
     });
 
-    it('should update only firstName when lastName is not provided', async () => {
+    it('should pass undefined fields when dto properties are absent', async () => {
       // Arrange
-      const updateDto: UpdateUserDto = {
-        firstName: 'Jane',
-      };
+      const dto = new UpdateMeDto();
       commandBus.execute.mockResolvedValue(mockUserProfile);
 
       // Act
-      await controller.updateMyProfile(mockCurrentUser, updateDto);
-
-      // Assert
-      expect(commandBus.execute).toHaveBeenCalledWith(
-        expect.objectContaining({
-          userId: '123',
-          firstName: 'Jane',
-          lastName: undefined,
-        }),
-      );
-    });
-
-    it('should update only lastName when firstName is not provided', async () => {
-      // Arrange
-      const updateDto: UpdateUserDto = {
-        lastName: 'Smith',
-      };
-      commandBus.execute.mockResolvedValue(mockUserProfile);
-
-      // Act
-      await controller.updateMyProfile(mockCurrentUser, updateDto);
-
-      // Assert
-      expect(commandBus.execute).toHaveBeenCalledWith(
-        expect.objectContaining({
-          userId: '123',
-          firstName: undefined,
-          lastName: 'Smith',
-        }),
-      );
-    });
-
-    it('should handle empty update dto', async () => {
-      // Arrange
-      const updateDto: UpdateUserDto = {};
-      commandBus.execute.mockResolvedValue(mockUserProfile);
-
-      // Act
-      await controller.updateMyProfile(mockCurrentUser, updateDto);
+      await controller.updateMe(mockCurrentUser, dto);
 
       // Assert
       expect(commandBus.execute).toHaveBeenCalledWith(
@@ -192,22 +158,25 @@ describe('MeHttpController', () => {
           userId: '123',
           firstName: undefined,
           lastName: undefined,
+          newEmail: undefined,
+          currentPassword: undefined,
+          newPassword: undefined,
         }),
       );
     });
   });
 
   describe('deleteMyAccount', () => {
-    it('should delete current user account', async () => {
-      const currentUser = { userId: 'user-456' };
+    it('should dispatch DeleteUserCommand for current user', async () => {
+      // Arrange
+      commandBus.execute.mockResolvedValue(undefined);
 
-      await controller.deleteMyAccount(currentUser);
+      // Act
+      await controller.deleteMyAccount(mockCurrentUser);
 
-      expect(commandBus.execute).toHaveBeenCalledWith(
-        expect.objectContaining({
-          userId: 'user-456',
-        }),
-      );
+      // Assert
+      expect(commandBus.execute).toHaveBeenCalledWith(expect.any(DeleteUserCommand));
+      expect(commandBus.execute).toHaveBeenCalledWith(expect.objectContaining({ userId: '123' }));
     });
   });
 });
