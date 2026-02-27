@@ -290,6 +290,27 @@ describe('PrismaNotificationRepository', () => {
 
       expect(result).toBe(0);
     });
+
+    it('should filter by channel when provided', async () => {
+      mockPrisma.notification.count.mockResolvedValue(3);
+
+      const result = await repository.countByUserAndStatus('user-1', 'SENT', 'WEBSOCKET');
+
+      expect(mockPrisma.notification.count).toHaveBeenCalledWith({
+        where: { userId: 'user-1', status: 'SENT', channel: 'WEBSOCKET' },
+      });
+      expect(result).toBe(3);
+    });
+
+    it('should not add channel to where when not provided', async () => {
+      mockPrisma.notification.count.mockResolvedValue(5);
+
+      await repository.countByUserAndStatus('user-1', 'SENT');
+
+      expect(mockPrisma.notification.count).toHaveBeenCalledWith({
+        where: { userId: 'user-1', status: 'SENT' },
+      });
+    });
   });
 
   describe('toDomain mapping', () => {

@@ -180,9 +180,47 @@ export class NotificationHttpController {
   @Get('unread-count')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Nombre de notifications non lues' })
+  @ApiQuery({
+    name: 'channel',
+    required: false,
+    description: 'Filtrer par canal',
+    enum: NotificationChannelValues,
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Filtrer par statut (défaut: SENT)',
+    enum: NotificationStatusValues,
+  })
   @ApiResponse({ status: 200, description: 'Nombre de notifications non lues' })
-  async getUnreadCount(@CurrentUser() user: { userId: string }): Promise<{ count: number }> {
-    const count = await this.notificationRepository.countByUserAndStatus(user.userId, 'SENT');
+  @ApiResponse({ status: 400, description: 'Paramètre de filtre invalide' })
+  async getUnreadCount(
+    @CurrentUser() user: { userId: string },
+    @Query('channel') channelParam?: string,
+    @Query('status') statusParam: string = 'SENT',
+  ): Promise<{ count: number }> {
+    let channel: NotificationChannel | undefined;
+
+    if (channelParam !== undefined) {
+      if (!isValidNotificationChannel(channelParam)) {
+        throw new BadRequestException(
+          `Canal invalide: ${channelParam}. Valeurs acceptées: ${NotificationChannelValues.join(', ')}`,
+        );
+      }
+      channel = channelParam;
+    }
+
+    if (!NotificationStatusValues.includes(statusParam as NotificationStatus)) {
+      throw new BadRequestException(
+        `Statut invalide: ${statusParam}. Valeurs acceptées: ${NotificationStatusValues.join(', ')}`,
+      );
+    }
+
+    const count = await this.notificationRepository.countByUserAndStatus(
+      user.userId,
+      statusParam as NotificationStatus,
+      channel,
+    );
     return { count };
   }
 

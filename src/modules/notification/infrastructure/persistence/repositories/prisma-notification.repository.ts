@@ -6,6 +6,7 @@ import {
   INotificationRepository,
   NotificationFilters,
 } from '../../../core/domain/repositories/notification.repository.interface';
+import { NotificationChannel } from '../../../core/domain/value-objects/notification-channel.vo';
 import { NotificationStatus } from '../../../core/domain/value-objects/notification-status.vo';
 import { NotificationType } from '../../../core/domain/value-objects/notification-type.vo';
 
@@ -67,9 +68,13 @@ export class PrismaNotificationRepository implements INotificationRepository {
     return this.toDomain(updated);
   }
 
-  async countByUserAndStatus(userId: string, status: NotificationStatus): Promise<number> {
+  async countByUserAndStatus(
+    userId: string,
+    status: NotificationStatus,
+    channel?: NotificationChannel,
+  ): Promise<number> {
     return this.prisma.notification.count({
-      where: { userId, status },
+      where: { userId, status, ...(channel && { channel }) },
     });
   }
 

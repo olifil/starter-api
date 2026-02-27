@@ -1198,9 +1198,16 @@ Authorization: Bearer <token>
 #### Nombre de non-lues _(Authentifié)_
 
 ```http
-GET /api/v1/notifications/unread-count
+GET /api/v1/notifications/unread-count?channel=EMAIL&status=SENT
 → { "count": 3 }
 ```
+
+| Paramètre | Type | Obligatoire | Défaut | Description |
+|-----------|------|-------------|--------|-------------|
+| `channel` | `NotificationChannel` | Non | — | Filtrer par canal |
+| `status` | `NotificationStatus` | Non | `SENT` | Filtrer par statut |
+
+Retourne `400` si `channel` ou `status` est invalide.
 
 #### Préférences _(Authentifié)_
 
@@ -2700,7 +2707,7 @@ git add prisma/       # Commiter les fichiers de migration
 | POST | `/send` | `NotificationResponseDto[]` | ADMIN |
 | GET | `/` | `NotificationResponseDto[]` | Authentifié |
 | PATCH | `/:id/read` | `204` | Authentifié (owner) |
-| GET | `/unread-count` | `{count: number}` | Authentifié |
+| GET | `/unread-count?channel=&status=` | `{count: number}` | Authentifié |
 | GET | `/preferences` | `NotificationPreferenceDto[]` | Authentifié |
 | PUT | `/preferences` | `204` | Authentifié |
 | GET | `/preview/:type` | HTML | ADMIN |

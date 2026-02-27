@@ -327,7 +327,7 @@ describe('Notification (Integration)', () => {
 
   describe('GET /notifications/unread-count', () => {
     beforeEach(async () => {
-      // Créer 3 notifications SENT (non lues) et 2 READ
+      // 3 notifications WEBSOCKET/SENT
       for (let i = 0; i < 3; i++) {
         await prisma.notification.create({
           data: {
@@ -335,11 +335,25 @@ describe('Notification (Integration)', () => {
             type: 'test-notification',
             channel: NotificationChannel.WEBSOCKET,
             status: NotificationStatus.SENT,
-            body: `Unread ${i}`,
+            body: `Unread WS ${i}`,
             sentAt: new Date(),
           },
         });
       }
+      // 2 notifications EMAIL/SENT
+      for (let i = 0; i < 2; i++) {
+        await prisma.notification.create({
+          data: {
+            userId,
+            type: 'test-notification',
+            channel: NotificationChannel.EMAIL,
+            status: NotificationStatus.SENT,
+            body: `Unread EMAIL ${i}`,
+            sentAt: new Date(),
+          },
+        });
+      }
+      // 2 notifications WEBSOCKET/READ
       for (let i = 0; i < 2; i++) {
         await prisma.notification.create({
           data: {
@@ -354,13 +368,40 @@ describe('Notification (Integration)', () => {
       }
     });
 
-    it('should return unread count for authenticated user', async () => {
+    it('should return unread count (SENT) for authenticated user', async () => {
       const response = await request(app.getHttpServer())
         .get('/notifications/unread-count')
         .set('Authorization', `Bearer ${userToken}`)
         .expect(200);
 
+      expect(response.body).toHaveProperty('count', 5);
+    });
+
+    it('should filter by channel', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/notifications/unread-count?channel=WEBSOCKET')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
       expect(response.body).toHaveProperty('count', 3);
+    });
+
+    it('should filter by status', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/notifications/unread-count?status=READ')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('count', 2);
+    });
+
+    it('should filter by channel and status combined', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/notifications/unread-count?channel=EMAIL&status=SENT')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('count', 2);
     });
 
     it('should return 0 for user with no notifications', async () => {
@@ -370,6 +411,20 @@ describe('Notification (Integration)', () => {
         .expect(200);
 
       expect(response.body).toHaveProperty('count', 0);
+    });
+
+    it('should return 400 for invalid channel', async () => {
+      await request(app.getHttpServer())
+        .get('/notifications/unread-count?channel=INVALID')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(400);
+    });
+
+    it('should return 400 for invalid status', async () => {
+      await request(app.getHttpServer())
+        .get('/notifications/unread-count?status=INVALID')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(400);
     });
 
     it('should return 401 without authentication', async () => {

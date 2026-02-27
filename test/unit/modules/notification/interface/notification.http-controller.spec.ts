@@ -162,14 +162,75 @@ describe('NotificationHttpController', () => {
   });
 
   describe('getUnreadCount', () => {
-    it('should return count from repository', async () => {
+    it('should return count with default status SENT', async () => {
       const user = { userId: 'user-1' };
       notificationRepository.countByUserAndStatus!.mockResolvedValue(5);
 
       const result = await controller.getUnreadCount(user);
 
-      expect(notificationRepository.countByUserAndStatus).toHaveBeenCalledWith('user-1', 'SENT');
+      expect(notificationRepository.countByUserAndStatus).toHaveBeenCalledWith(
+        'user-1',
+        'SENT',
+        undefined,
+      );
       expect(result).toEqual({ count: 5 });
+    });
+
+    it('should filter by channel when provided', async () => {
+      const user = { userId: 'user-1' };
+      notificationRepository.countByUserAndStatus!.mockResolvedValue(2);
+
+      const result = await controller.getUnreadCount(user, 'WEBSOCKET');
+
+      expect(notificationRepository.countByUserAndStatus).toHaveBeenCalledWith(
+        'user-1',
+        'SENT',
+        'WEBSOCKET',
+      );
+      expect(result).toEqual({ count: 2 });
+    });
+
+    it('should use provided status', async () => {
+      const user = { userId: 'user-1' };
+      notificationRepository.countByUserAndStatus!.mockResolvedValue(3);
+
+      const result = await controller.getUnreadCount(user, undefined, 'READ');
+
+      expect(notificationRepository.countByUserAndStatus).toHaveBeenCalledWith(
+        'user-1',
+        'READ',
+        undefined,
+      );
+      expect(result).toEqual({ count: 3 });
+    });
+
+    it('should filter by channel and status combined', async () => {
+      const user = { userId: 'user-1' };
+      notificationRepository.countByUserAndStatus!.mockResolvedValue(1);
+
+      await controller.getUnreadCount(user, 'EMAIL', 'FAILED');
+
+      expect(notificationRepository.countByUserAndStatus).toHaveBeenCalledWith(
+        'user-1',
+        'FAILED',
+        'EMAIL',
+      );
+    });
+
+    it('should throw BadRequestException for invalid channel', async () => {
+      const user = { userId: 'user-1' };
+
+      await expect(controller.getUnreadCount(user, 'INVALID_CHANNEL')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw BadRequestException for invalid status', async () => {
+      const user = { userId: 'user-1' };
+
+      await expect(controller.getUnreadCount(user, undefined, 'INVALID_STATUS')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 

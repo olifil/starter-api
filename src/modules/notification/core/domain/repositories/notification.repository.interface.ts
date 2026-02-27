@@ -18,7 +18,11 @@ export interface INotificationRepository {
     filters?: NotificationFilters,
   ): Promise<{ notifications: Notification[]; total: number }>;
   update(notification: Notification): Promise<Notification>;
-  countByUserAndStatus(userId: string, status: NotificationStatus): Promise<number>;
+  countByUserAndStatus(
+    userId: string,
+    status: NotificationStatus,
+    channel?: NotificationChannel,
+  ): Promise<number>;
 }
 
 export const NOTIFICATION_REPOSITORY = Symbol('NOTIFICATION_REPOSITORY');
