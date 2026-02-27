@@ -165,6 +165,92 @@ describe('PrismaNotificationRepository', () => {
       expect(call.skip).toBe(20);
       expect(call.take).toBe(10);
     });
+
+    it('should filter by type when provided', async () => {
+      mockPrisma.notification.findMany.mockResolvedValue([]);
+      mockPrisma.notification.count.mockResolvedValue(0);
+
+      await repository.findByUserId('user-1', 1, 10, { type: 'welcome' });
+
+      expect(mockPrisma.notification.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', type: 'welcome' },
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(mockPrisma.notification.count).toHaveBeenCalledWith({
+        where: { userId: 'user-1', type: 'welcome' },
+      });
+    });
+
+    it('should filter by channel when provided', async () => {
+      mockPrisma.notification.findMany.mockResolvedValue([]);
+      mockPrisma.notification.count.mockResolvedValue(0);
+
+      await repository.findByUserId('user-1', 1, 10, { channel: 'WEBSOCKET' });
+
+      expect(mockPrisma.notification.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', channel: 'WEBSOCKET' },
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(mockPrisma.notification.count).toHaveBeenCalledWith({
+        where: { userId: 'user-1', channel: 'WEBSOCKET' },
+      });
+    });
+
+    it('should filter by status when provided', async () => {
+      mockPrisma.notification.findMany.mockResolvedValue([]);
+      mockPrisma.notification.count.mockResolvedValue(0);
+
+      await repository.findByUserId('user-1', 1, 10, { status: 'SENT' });
+
+      expect(mockPrisma.notification.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', status: 'SENT' },
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(mockPrisma.notification.count).toHaveBeenCalledWith({
+        where: { userId: 'user-1', status: 'SENT' },
+      });
+    });
+
+    it('should apply all filters combined', async () => {
+      mockPrisma.notification.findMany.mockResolvedValue([]);
+      mockPrisma.notification.count.mockResolvedValue(0);
+
+      await repository.findByUserId('user-1', 1, 10, {
+        type: 'generic',
+        channel: 'EMAIL',
+        status: 'SENT',
+      });
+
+      expect(mockPrisma.notification.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', type: 'generic', channel: 'EMAIL', status: 'SENT' },
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(mockPrisma.notification.count).toHaveBeenCalledWith({
+        where: { userId: 'user-1', type: 'generic', channel: 'EMAIL', status: 'SENT' },
+      });
+    });
+
+    it('should not add extra fields to where when filters are empty object', async () => {
+      mockPrisma.notification.findMany.mockResolvedValue([]);
+      mockPrisma.notification.count.mockResolvedValue(0);
+
+      await repository.findByUserId('user-1', 1, 10, {});
+
+      expect(mockPrisma.notification.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+      });
+    });
   });
 
   describe('update', () => {

@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ConfigService } from '@nestjs/config';
 import { NotificationHttpController } from '@modules/notification/interface/http-controller/notification.http-controller';
@@ -76,6 +77,74 @@ describe('NotificationHttpController', () => {
 
       expect(queryBus.execute).toHaveBeenCalledWith(new GetNotificationsQuery('user-1', 2, 15));
       expect(result).toBe(expected);
+    });
+
+    it('should pass type filter to query', async () => {
+      const user = { userId: 'user-1' };
+      queryBus.execute.mockResolvedValue({ data: [], meta: {} });
+
+      await controller.getMyNotifications(user, '1', '10', 'welcome');
+
+      expect(queryBus.execute).toHaveBeenCalledWith(
+        new GetNotificationsQuery('user-1', 1, 10, 'welcome', undefined, undefined),
+      );
+    });
+
+    it('should pass channel filter to query', async () => {
+      const user = { userId: 'user-1' };
+      queryBus.execute.mockResolvedValue({ data: [], meta: {} });
+
+      await controller.getMyNotifications(user, '1', '10', undefined, 'EMAIL');
+
+      expect(queryBus.execute).toHaveBeenCalledWith(
+        new GetNotificationsQuery('user-1', 1, 10, undefined, 'EMAIL', undefined),
+      );
+    });
+
+    it('should pass status filter to query', async () => {
+      const user = { userId: 'user-1' };
+      queryBus.execute.mockResolvedValue({ data: [], meta: {} });
+
+      await controller.getMyNotifications(user, '1', '10', undefined, undefined, 'SENT');
+
+      expect(queryBus.execute).toHaveBeenCalledWith(
+        new GetNotificationsQuery('user-1', 1, 10, undefined, undefined, 'SENT'),
+      );
+    });
+
+    it('should pass all filters combined to query', async () => {
+      const user = { userId: 'user-1' };
+      queryBus.execute.mockResolvedValue({ data: [], meta: {} });
+
+      await controller.getMyNotifications(user, '1', '10', 'generic', 'WEBSOCKET', 'SENT');
+
+      expect(queryBus.execute).toHaveBeenCalledWith(
+        new GetNotificationsQuery('user-1', 1, 10, 'generic', 'WEBSOCKET', 'SENT'),
+      );
+    });
+
+    it('should throw BadRequestException for invalid channel', async () => {
+      const user = { userId: 'user-1' };
+
+      await expect(
+        controller.getMyNotifications(user, '1', '10', undefined, 'INVALID_CHANNEL'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException for invalid status', async () => {
+      const user = { userId: 'user-1' };
+
+      await expect(
+        controller.getMyNotifications(user, '1', '10', undefined, undefined, 'INVALID_STATUS'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException for invalid type format', async () => {
+      const user = { userId: 'user-1' };
+
+      await expect(controller.getMyNotifications(user, '1', '10', 'INVALID TYPE!')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 

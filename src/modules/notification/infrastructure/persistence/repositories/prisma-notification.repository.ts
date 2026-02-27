@@ -2,7 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@database/prisma.service';
 import { Notification as PrismaNotification, Prisma } from '@prisma/client';
 import { Notification } from '../../../core/domain/entities/notification.entity';
-import { INotificationRepository } from '../../../core/domain/repositories/notification.repository.interface';
+import {
+  INotificationRepository,
+  NotificationFilters,
+} from '../../../core/domain/repositories/notification.repository.interface';
 import { NotificationStatus } from '../../../core/domain/value-objects/notification-status.vo';
 import { NotificationType } from '../../../core/domain/value-objects/notification-type.vo';
 
@@ -30,17 +33,24 @@ export class PrismaNotificationRepository implements INotificationRepository {
     userId: string,
     page: number,
     pageSize: number,
+    filters?: NotificationFilters,
   ): Promise<{ notifications: Notification[]; total: number }> {
     const skip = (page - 1) * pageSize;
+    const where: Prisma.NotificationWhereInput = {
+      userId,
+      ...(filters?.type && { type: filters.type }),
+      ...(filters?.channel && { channel: filters.channel }),
+      ...(filters?.status && { status: filters.status }),
+    };
 
     const [prismaNotifications, total] = await Promise.all([
       this.prisma.notification.findMany({
-        where: { userId },
+        where,
         skip,
         take: pageSize,
         orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.notification.count({ where: { userId } }),
+      this.prisma.notification.count({ where }),
     ]);
 
     const notifications = prismaNotifications.map((n) => this.toDomain(n));

@@ -55,7 +55,11 @@ describe('GetNotificationsHandler', () => {
       const query = new GetNotificationsQuery('user-1', 1, 10);
       const result = await handler.execute(query);
 
-      expect(notificationRepository.findByUserId).toHaveBeenCalledWith('user-1', 1, 10);
+      expect(notificationRepository.findByUserId).toHaveBeenCalledWith('user-1', 1, 10, {
+        type: undefined,
+        channel: undefined,
+        status: undefined,
+      });
       expect(result.data).toHaveLength(2);
       expect(result.meta.totalItems).toBe(2);
       expect(result.meta.currentPage).toBe(1);
@@ -85,6 +89,58 @@ describe('GetNotificationsHandler', () => {
       expect(result.data[0].id).toBe('notif-1');
       expect(result.data[0].userId).toBe('user-1');
       expect(result.data[0].channel).toBe('EMAIL');
+    });
+
+    it('should pass type filter to repository', async () => {
+      notificationRepository.findByUserId.mockResolvedValue({ notifications: [], total: 0 });
+
+      const query = new GetNotificationsQuery('user-1', 1, 10, 'welcome');
+      await handler.execute(query);
+
+      expect(notificationRepository.findByUserId).toHaveBeenCalledWith('user-1', 1, 10, {
+        type: 'welcome',
+        channel: undefined,
+        status: undefined,
+      });
+    });
+
+    it('should pass channel filter to repository', async () => {
+      notificationRepository.findByUserId.mockResolvedValue({ notifications: [], total: 0 });
+
+      const query = new GetNotificationsQuery('user-1', 1, 10, undefined, 'EMAIL');
+      await handler.execute(query);
+
+      expect(notificationRepository.findByUserId).toHaveBeenCalledWith('user-1', 1, 10, {
+        type: undefined,
+        channel: 'EMAIL',
+        status: undefined,
+      });
+    });
+
+    it('should pass status filter to repository', async () => {
+      notificationRepository.findByUserId.mockResolvedValue({ notifications: [], total: 0 });
+
+      const query = new GetNotificationsQuery('user-1', 1, 10, undefined, undefined, 'SENT');
+      await handler.execute(query);
+
+      expect(notificationRepository.findByUserId).toHaveBeenCalledWith('user-1', 1, 10, {
+        type: undefined,
+        channel: undefined,
+        status: 'SENT',
+      });
+    });
+
+    it('should pass all filters combined to repository', async () => {
+      notificationRepository.findByUserId.mockResolvedValue({ notifications: [], total: 0 });
+
+      const query = new GetNotificationsQuery('user-1', 1, 10, 'generic', 'WEBSOCKET', 'SENT');
+      await handler.execute(query);
+
+      expect(notificationRepository.findByUserId).toHaveBeenCalledWith('user-1', 1, 10, {
+        type: 'generic',
+        channel: 'WEBSOCKET',
+        status: 'SENT',
+      });
     });
   });
 });

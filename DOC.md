@@ -1174,9 +1174,19 @@ Authorization: Bearer <token>
 #### Mes notifications _(Authentifié)_
 
 ```http
-GET /api/v1/notifications?page=1&pageSize=10
+GET /api/v1/notifications?page=1&pageSize=10&type=generic&channel=WEBSOCKET&status=SENT
 Authorization: Bearer <token>
 ```
+
+| Paramètre | Type | Requis | Description |
+|-----------|------|--------|-------------|
+| `page` | number | Non | Numéro de page (défaut : 1) |
+| `pageSize` | number | Non | Éléments par page (défaut : 10) |
+| `type` | string | Non | Filtrer par type (ex: `generic`, `welcome`) |
+| `channel` | `EMAIL` \| `SMS` \| `PUSH` \| `WEB_PUSH` \| `WEBSOCKET` | Non | Filtrer par canal |
+| `status` | `PENDING` \| `QUEUED` \| `SENT` \| `FAILED` \| `READ` | Non | Filtrer par statut |
+
+Les filtres sont cumulables. Un `channel` ou `status` invalide retourne `400 Bad Request`.
 
 #### Marquer comme lue _(Authentifié)_
 

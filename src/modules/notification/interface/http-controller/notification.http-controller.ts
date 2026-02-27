@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
@@ -24,7 +25,16 @@ import { Roles, RolesGuard } from '@shared/authorization';
 import { CurrentUser } from '@shared/decorators/current-user.decorator';
 import { SendNotificationDto } from '../../core/application/dtos/send-notification.dto';
 import { NotificationResponseDto } from '../../core/application/dtos/notification-response.dto';
-import { NotificationChannel } from '../../core/domain/value-objects/notification-channel.vo';
+import {
+  NotificationChannel,
+  NotificationChannelValues,
+  isValidNotificationChannel,
+} from '../../core/domain/value-objects/notification-channel.vo';
+import {
+  NotificationStatus,
+  NotificationStatusValues,
+} from '../../core/domain/value-objects/notification-status.vo';
+import { NotificationType } from '../../core/domain/value-objects/notification-type.vo';
 import { SendNotificationCommand } from '../../core/application/commands/send-notification/send-notification.command';
 import { MarkAsReadCommand } from '../../core/application/commands/mark-as-read/mark-as-read.command';
 import { GetNotificationsQuery } from '../../core/application/queries/get-notifications/get-notifications.query';
@@ -77,31 +87,78 @@ export class NotificationHttpController {
   @Get()
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Récupérer mes notifications (paginé)' })
-  @ApiQuery({
-    name: 'page',
-    required: false,
-    description: 'Numéro de page',
-    example: 1,
-  })
+  @ApiQuery({ name: 'page', required: false, description: 'Numéro de page', example: 1 })
   @ApiQuery({
     name: 'pageSize',
     required: false,
     description: "Nombre d'éléments par page",
     example: 10,
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Liste paginée des notifications',
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    description: 'Filtrer par type (ex: welcome, generic)',
+    example: 'generic',
   })
+  @ApiQuery({
+    name: 'channel',
+    required: false,
+    description: 'Filtrer par canal',
+    enum: NotificationChannelValues,
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Filtrer par statut',
+    enum: NotificationStatusValues,
+  })
+  @ApiResponse({ status: 200, description: 'Liste paginée des notifications' })
+  @ApiResponse({ status: 400, description: 'Paramètre de filtre invalide' })
   async getMyNotifications(
     @CurrentUser() user: { userId: string },
     @Query('page') page: string = '1',
     @Query('pageSize') pageSize: string = '10',
+    @Query('type') typeParam?: string,
+    @Query('channel') channelParam?: string,
+    @Query('status') statusParam?: string,
   ): Promise<PaginatedResponseDto<NotificationResponseDto>> {
+    let type: string | undefined;
+    let channel: NotificationChannel | undefined;
+    let status: NotificationStatus | undefined;
+
+    if (typeParam !== undefined) {
+      try {
+        type = new NotificationType(typeParam).value;
+      } catch {
+        throw new BadRequestException(`Type de notification invalide: ${typeParam}`);
+      }
+    }
+
+    if (channelParam !== undefined) {
+      if (!isValidNotificationChannel(channelParam)) {
+        throw new BadRequestException(
+          `Canal invalide: ${channelParam}. Valeurs acceptées: ${NotificationChannelValues.join(', ')}`,
+        );
+      }
+      channel = channelParam;
+    }
+
+    if (statusParam !== undefined) {
+      if (!NotificationStatusValues.includes(statusParam as NotificationStatus)) {
+        throw new BadRequestException(
+          `Statut invalide: ${statusParam}. Valeurs acceptées: ${NotificationStatusValues.join(', ')}`,
+        );
+      }
+      status = statusParam as NotificationStatus;
+    }
+
     const query = new GetNotificationsQuery(
       user.userId,
       parseInt(page, 10),
       parseInt(pageSize, 10),
+      type,
+      channel,
+      status,
     );
     return this.queryBus.execute(query);
   }

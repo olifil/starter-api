@@ -212,6 +212,119 @@ describe('Notification (Integration)', () => {
     });
   });
 
+  describe('GET /notifications — Filtres', () => {
+    beforeEach(async () => {
+      // 3 notifications welcome/EMAIL/SENT
+      for (let i = 0; i < 3; i++) {
+        await prisma.notification.create({
+          data: {
+            userId,
+            type: 'welcome',
+            channel: NotificationChannel.EMAIL,
+            status: NotificationStatus.SENT,
+            body: `Welcome ${i}`,
+            subject: `Welcome subject ${i}`,
+            sentAt: new Date(),
+          },
+        });
+      }
+      // 2 notifications generic/WEBSOCKET/READ
+      for (let i = 0; i < 2; i++) {
+        await prisma.notification.create({
+          data: {
+            userId,
+            type: 'generic',
+            channel: NotificationChannel.WEBSOCKET,
+            status: NotificationStatus.READ,
+            body: `Generic ${i}`,
+            readAt: new Date(),
+          },
+        });
+      }
+    });
+
+    it('should filter by type', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/notifications?type=welcome')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      expect(response.body.meta.totalItems).toBe(3);
+      expect(response.body.data.every((n: { type: string }) => n.type === 'welcome')).toBe(true);
+    });
+
+    it('should filter by channel', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/notifications?channel=WEBSOCKET')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      expect(response.body.meta.totalItems).toBe(2);
+      expect(response.body.data.every((n: { channel: string }) => n.channel === 'WEBSOCKET')).toBe(
+        true,
+      );
+    });
+
+    it('should filter by status', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/notifications?status=SENT')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      expect(response.body.meta.totalItems).toBe(3);
+      expect(response.body.data.every((n: { status: string }) => n.status === 'SENT')).toBe(true);
+    });
+
+    it('should apply all filters combined', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/notifications?type=welcome&channel=EMAIL&status=SENT')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      expect(response.body.meta.totalItems).toBe(3);
+    });
+
+    it('should return empty result when no notifications match filters', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/notifications?type=welcome&channel=WEBSOCKET')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      expect(response.body.meta.totalItems).toBe(0);
+      expect(response.body.data).toHaveLength(0);
+    });
+
+    it('should return 400 for invalid channel', async () => {
+      await request(app.getHttpServer())
+        .get('/notifications?channel=INVALID_CHANNEL')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(400);
+    });
+
+    it('should return 400 for invalid status', async () => {
+      await request(app.getHttpServer())
+        .get('/notifications?status=INVALID_STATUS')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(400);
+    });
+
+    it('should return 400 for invalid type format', async () => {
+      await request(app.getHttpServer())
+        .get('/notifications?type=INVALID TYPE!')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(400);
+    });
+
+    it('should only return filtered notifications for the authenticated user', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/notifications?type=welcome')
+        .set('Authorization', `Bearer ${otherUserToken}`)
+        .expect(200);
+
+      expect(response.body.meta.totalItems).toBe(0);
+    });
+  });
+
   describe('GET /notifications/unread-count', () => {
     beforeEach(async () => {
       // Créer 3 notifications SENT (non lues) et 2 READ

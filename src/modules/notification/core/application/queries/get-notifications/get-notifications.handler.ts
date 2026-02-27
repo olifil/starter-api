@@ -23,6 +23,7 @@ export class GetNotificationsHandler implements IQueryHandler<GetNotificationsQu
       query.userId,
       query.page,
       query.pageSize,
+      { type: query.type, channel: query.channel, status: query.status },
     );
 
     const data = notifications.map((n) => NotificationResponseDto.fromDomain(n));
