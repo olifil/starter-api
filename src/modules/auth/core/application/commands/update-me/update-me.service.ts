@@ -1,7 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler, EventBus, IEvent } from '@nestjs/cqrs';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import { UpdateMeCommand } from './update-me.command';
 import { Email } from '@modules/user/core/domain/value-objects/email.vo';
 import { HashedPassword } from '@modules/user/core/domain/value-objects/hashed-password.vo';
@@ -19,6 +17,7 @@ import { EmailAlreadyExistsException } from '@modules/user/core/application/exce
 import { InvalidCurrentPasswordException } from '../../exceptions/invalid-current-password.exception';
 import { EmailChangeRequestedEvent } from '../../../domain/events/email-change-requested.event';
 import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
+import { EmailTokenService } from '../../services/email-token.service';
 
 @Injectable()
 @CommandHandler(UpdateMeCommand)
@@ -29,8 +28,7 @@ export class UpdateMeService implements ICommandHandler<UpdateMeCommand> {
     @Inject(REFRESH_TOKEN_REPOSITORY)
     private readonly refreshTokenRepository: IRefreshTokenRepository,
     private readonly eventBus: EventBus,
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    private readonly emailTokenService: EmailTokenService,
     private readonly matomoService: MatomoService,
   ) {}
 
@@ -61,15 +59,8 @@ export class UpdateMeService implements ICommandHandler<UpdateMeCommand> {
         throw new EmailAlreadyExistsException(command.newEmail);
       }
 
-      const emailChangeSecret =
-        this.configService.get<string>('jwt.resetSecret') ??
-        this.configService.get<string>('jwt.secret')!;
-
-      const expiresIn = '1h';
-      const confirmationToken = await this.jwtService.signAsync(
-        { sub: user.id, newEmail: command.newEmail, type: 'email-change' },
-        { secret: emailChangeSecret, expiresIn },
-      );
+      const { token: confirmationToken, expiresIn } =
+        await this.emailTokenService.generateEmailChangeToken(user.id, command.newEmail);
 
       this.eventBus.publish(
         new EmailChangeRequestedEvent(

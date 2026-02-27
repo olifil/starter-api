@@ -83,7 +83,7 @@ describe('OnEmailChangeRequestedHandler', () => {
 
       const command = commandBus.execute.mock.calls[0][0] as SendNotificationCommand;
       expect(command.variables?.['confirmationLink']).toBe(
-        `${frontendUrl}/confirm-email-change?token=abc123token`,
+        `${frontendUrl}/verify-email?token=abc123token`,
       );
     });
 

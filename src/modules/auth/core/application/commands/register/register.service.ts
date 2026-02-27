@@ -1,7 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler, EventBus, IEvent } from '@nestjs/cqrs';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import { RegisterCommand } from './register.command';
 import { User } from '@modules/user/core/domain/entities/user.entity';
 import { Email } from '@modules/user/core/domain/value-objects/email.vo';
@@ -14,6 +12,7 @@ import {
 import { EmailAlreadyExistsException } from '@modules/user/core/application/exceptions/email-already-exists.exception';
 import { TermsNotAcceptedException } from '@modules/auth/core/application/exceptions/terms-not-accepted.exception';
 import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
+import { EmailTokenService } from '../../services/email-token.service';
 
 @Injectable()
 @CommandHandler(RegisterCommand)
@@ -21,8 +20,7 @@ export class RegisterService implements ICommandHandler<RegisterCommand> {
   constructor(
     @Inject(USER_REPOSITORY)
     private readonly userRepository: IUserRepository,
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    private readonly emailTokenService: EmailTokenService,
     private readonly eventBus: EventBus,
     private readonly matomoService: MatomoService,
   ) {}
@@ -56,16 +54,9 @@ export class RegisterService implements ICommandHandler<RegisterCommand> {
     const savedUser = await this.userRepository.save(user);
 
     // Générer le token de vérification d'email
-    const verificationSecret =
-      this.configService.get<string>('jwt.verificationSecret') ??
-      this.configService.get<string>('jwt.secret')!;
-    const verificationExpiresIn = this.configService.get<string>('jwt.verificationExpiresIn', '7d');
-
-    const verificationToken = await this.jwtService.signAsync(
-      { sub: savedUser.id, email: savedUser.email.value, type: 'email-verification' },
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      { secret: verificationSecret, expiresIn: verificationExpiresIn as any },
+    const verificationToken = await this.emailTokenService.generateVerificationToken(
+      savedUser.id,
+      savedUser.email.value,
     );
 
     // Publier les events de domaine en enrichissant UserCreatedEvent avec le token

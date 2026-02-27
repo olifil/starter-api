@@ -9,7 +9,7 @@ import { DomainExceptionFilter } from '../../../src/shared/filters/domain-except
 import { registerAndLogin } from '../helpers';
 
 /**
- * Génère un token JWT de type 'email-change' signé avec le secret resetSecret de l'app.
+ * Génère un token JWT de type 'email-change' signé avec le secret emailChangeSecret de l'app.
  */
 async function signEmailChangeToken(
   app: INestApplication,
@@ -19,11 +19,16 @@ async function signEmailChangeToken(
   const jwtService = app.get(JwtService);
   const configService = app.get(ConfigService);
   const secret =
-    configService.get<string>('jwt.resetSecret') ?? configService.get<string>('jwt.secret')!;
-  return jwtService.signAsync({ ...payload, type: 'email-change' }, { secret, expiresIn });
+    configService.get<string>('jwt.emailChangeSecret') ?? configService.get<string>('jwt.secret')!;
+
+  return jwtService.signAsync(
+    { ...payload, type: 'email-change' },
+
+    { secret, expiresIn: expiresIn as any },
+  );
 }
 
-describe('Confirm Email Change — POST /auth/confirm-email-change (Integration)', () => {
+describe('Confirm Email Change — POST /auth/verify-email (Integration)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let userId: string;
@@ -76,10 +81,7 @@ describe('Confirm Email Change — POST /auth/confirm-email-change (Integration)
       });
 
       // Act
-      await request(app.getHttpServer())
-        .post('/auth/confirm-email-change')
-        .send({ token })
-        .expect(204);
+      await request(app.getHttpServer()).post('/auth/verify-email').send({ token }).expect(204);
 
       // Assert — l'email a bien été modifié en base
       const updatedUser = await prisma.user.findUnique({ where: { id: userId } });
@@ -94,10 +96,7 @@ describe('Confirm Email Change — POST /auth/confirm-email-change (Integration)
       });
 
       // Act
-      await request(app.getHttpServer())
-        .post('/auth/confirm-email-change')
-        .send({ token })
-        .expect(204);
+      await request(app.getHttpServer()).post('/auth/verify-email').send({ token }).expect(204);
 
       // Assert — le refresh token précédent ne fonctionne plus
       await request(app.getHttpServer()).post('/auth/refresh').send({ refreshToken }).expect(401);
@@ -111,10 +110,7 @@ describe('Confirm Email Change — POST /auth/confirm-email-change (Integration)
       });
 
       // Act
-      await request(app.getHttpServer())
-        .post('/auth/confirm-email-change')
-        .send({ token })
-        .expect(204);
+      await request(app.getHttpServer()).post('/auth/verify-email').send({ token }).expect(204);
 
       // Assert — connexion possible avec le nouvel email
       const loginResponse = await request(app.getHttpServer())
@@ -128,25 +124,27 @@ describe('Confirm Email Change — POST /auth/confirm-email-change (Integration)
   describe('invalid token', () => {
     it('should return 400 with a completely invalid token', async () => {
       await request(app.getHttpServer())
-        .post('/auth/confirm-email-change')
+        .post('/auth/verify-email')
         .send({ token: 'not-a-valid-jwt' })
         .expect(400);
     });
 
     it('should return 400 when token has wrong type', async () => {
-      // Arrange — token valide mais mauvais type
+      // Arrange — token valide mais type inconnu
       const jwtService = app.get(JwtService);
       const configService = app.get(ConfigService);
       const secret =
-        configService.get<string>('jwt.resetSecret') ?? configService.get<string>('jwt.secret')!;
+        configService.get<string>('jwt.emailChangeSecret') ??
+        configService.get<string>('jwt.secret')!;
       const wrongTypeToken = await jwtService.signAsync(
         { sub: userId, newEmail: 'nouveau@example.com', type: 'password-reset' },
-        { secret, expiresIn: '1h' },
+
+        { secret, expiresIn: '1h' as any },
       );
 
       // Act & Assert
       await request(app.getHttpServer())
-        .post('/auth/confirm-email-change')
+        .post('/auth/verify-email')
         .send({ token: wrongTypeToken })
         .expect(400);
     });
@@ -161,7 +159,7 @@ describe('Confirm Email Change — POST /auth/confirm-email-change (Integration)
 
       // Act & Assert
       await request(app.getHttpServer())
-        .post('/auth/confirm-email-change')
+        .post('/auth/verify-email')
         .send({ token: expiredToken })
         .expect(400);
     });
@@ -174,10 +172,7 @@ describe('Confirm Email Change — POST /auth/confirm-email-change (Integration)
       });
 
       // Act & Assert
-      await request(app.getHttpServer())
-        .post('/auth/confirm-email-change')
-        .send({ token })
-        .expect(400);
+      await request(app.getHttpServer()).post('/auth/verify-email').send({ token }).expect(400);
     });
   });
 
@@ -198,10 +193,7 @@ describe('Confirm Email Change — POST /auth/confirm-email-change (Integration)
       });
 
       // Act & Assert
-      await request(app.getHttpServer())
-        .post('/auth/confirm-email-change')
-        .send({ token })
-        .expect(409);
+      await request(app.getHttpServer()).post('/auth/verify-email').send({ token }).expect(409);
 
       // L'email original reste inchangé
       const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -211,7 +203,7 @@ describe('Confirm Email Change — POST /auth/confirm-email-change (Integration)
 
   describe('validation', () => {
     it('should return 400 when token field is missing', async () => {
-      await request(app.getHttpServer()).post('/auth/confirm-email-change').send({}).expect(400);
+      await request(app.getHttpServer()).post('/auth/verify-email').send({}).expect(400);
     });
   });
 });

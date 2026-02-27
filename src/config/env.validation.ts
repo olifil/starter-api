@@ -93,6 +93,15 @@ class EnvironmentVariables {
   @IsOptional()
   JWT_VERIFICATION_EXPIRATION: string = '7d';
 
+  // JWT Email Change Token
+  @IsString()
+  @IsOptional()
+  JWT_EMAIL_CHANGE_SECRET?: string;
+
+  @IsString()
+  @IsOptional()
+  JWT_EMAIL_CHANGE_EXPIRATION: string = '1h';
+
   // Matomo Analytics (optional)
   @IsUrl({ require_tld: false })
   @IsOptional()

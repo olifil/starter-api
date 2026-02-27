@@ -412,7 +412,8 @@ Le module Auth gère **l'identité** des utilisateurs : comment ils s'inscrivent
 | **Access token** | `JWT_EXPIRATION` (défaut: 15 min) | Authentifier chaque requête | `JWT_SECRET` |
 | **Refresh token** | `JWT_REFRESH_EXPIRATION` (défaut: 7 jours) | Obtenir un nouvel access token | `JWT_REFRESH_SECRET` |
 | **Reset token** | `JWT_RESET_EXPIRATION` (défaut: 15 min) | Réinitialiser le mot de passe | `JWT_RESET_SECRET` |
-| **Verification token** | `JWT_VERIFICATION_EXPIRATION` (défaut: 7 jours) | Vérifier l'email | `JWT_VERIFICATION_SECRET` |
+| **Verification token** | `JWT_VERIFICATION_EXPIRATION` (défaut: 7 jours) | Vérifier l'email à l'inscription | `JWT_VERIFICATION_SECRET` |
+| **Email change token** | `JWT_EMAIL_CHANGE_EXPIRATION` (défaut: 1h) | Confirmer un changement d'email | `JWT_EMAIL_CHANGE_SECRET` |
 
 ### Politique de mot de passe
 
@@ -443,7 +444,7 @@ Appliquée via :
 | `POST` | `/api/v1/auth/refresh` | Public (refresh token) | Renouveler l'access token |
 | `POST` | `/api/v1/auth/forgot-password` | Public | Demander un reset |
 | `POST` | `/api/v1/auth/reset-password` | Public (reset token) | Changer le mot de passe |
-| `POST` | `/api/v1/auth/verify-email` | Public (verify token) | Vérifier l'email |
+| `POST` | `/api/v1/auth/verify-email` | Public (verify token) | Vérifier l'email (inscription ou changement d'email) |
 
 ### Flux : Inscription
 
@@ -578,9 +579,11 @@ ResetPasswordService
 
 ### Flux : Vérification de l'email
 
+L'endpoint `POST /api/v1/auth/verify-email` est **unifié** : il gère les deux types de tokens en décodant le champ `type` du JWT sans vérification de signature, puis en vérifiant avec le bon secret.
+
 ```
-Automatique à l'inscription
-────────────────────────────
+Cas 1 — Vérification à l'inscription (type: 'email-verification')
+──────────────────────────────────────────────────────────────────
 Email de bienvenue contient :
   verificationLink = FRONTEND_URL + EMAIL_VERIFICATION_PATH + ?token=<JWT>
 
@@ -589,11 +592,34 @@ POST /api/v1/auth/verify-email  { token }
          │
          ▼
 VerifyEmailService
-  ├── Vérifie le JWT avec JWT_VERIFICATION_SECRET
-  ├── Vérifie payload.type === 'email-verification'
-  ├── Charge l'utilisateur
+  ├── EmailTokenService.verifyEmailToken(token)
+  │     ├── Décode le type sans vérification
+  │     └── Vérifie le JWT avec JWT_VERIFICATION_SECRET
+  ├── Charge l'utilisateur par sub
   ├── user.verifyEmail() → emailVerified = true, emailVerifiedAt = now()
-  └── Persiste → 204 No Content
+  ├── Persiste
+  └── Publie AccountVerifiedEvent → 204 No Content
+
+
+Cas 2 — Confirmation de changement d'email (type: 'email-change')
+──────────────────────────────────────────────────────────────────
+Email de confirmation envoyé à la nouvelle adresse contient :
+  confirmationLink = FRONTEND_URL + EMAIL_VERIFICATION_PATH + ?token=<JWT>
+
+Le frontend appelle :
+POST /api/v1/auth/verify-email  { token }
+         │
+         ▼
+VerifyEmailService
+  ├── EmailTokenService.verifyEmailToken(token)
+  │     ├── Décode le type sans vérification
+  │     └── Vérifie le JWT avec JWT_EMAIL_CHANGE_SECRET
+  ├── Charge l'utilisateur par sub
+  ├── Vérifie que le nouvel email n'est pas déjà pris → 409 si conflit
+  ├── user.changeEmail(newEmail)
+  ├── Persiste
+  ├── Révoque toutes les sessions (refresh tokens)
+  └── 204 No Content
 ```
 
 ---
@@ -1030,6 +1056,7 @@ Le module écoute automatiquement ces événements domaine :
 |-----------|------|-------|---------------------|
 | `UserCreatedEvent` | `welcome` | EMAIL | `firstName`, `lastName`, `appName`, `verificationLink` |
 | `PasswordResetRequestedEvent` | `password-reset` | EMAIL | `firstName`, `resetLink`, `expiresIn` |
+| `EmailChangeRequestedEvent` | `email-change-verification` | EMAIL | `firstName`, `confirmationLink`, `expiresIn` |
 | `UserDeletedEvent` | `account-deleted` | EMAIL | `firstName`, `appName` |
 
 ### Catalogue des types de notifications
@@ -1059,6 +1086,20 @@ Email de réinitialisation de mot de passe avec lien valide 15 minutes.
 | **Handler** | `on-password-reset-requested.handler.ts` |
 
 Variables : `{firstName}`, `{resetLink}`, `{expiresIn}`
+
+---
+
+#### `email-change-verification`
+
+Email envoyé à la **nouvelle adresse** pour confirmer un changement d'email initié depuis le profil utilisateur. Le lien pointe vers `EMAIL_VERIFICATION_PATH` (même chemin que la vérification à l'inscription).
+
+| | |
+|--|--|
+| **Déclencheur** | Automatique via `EmailChangeRequestedEvent` |
+| **Canaux** | EMAIL |
+| **Handler** | `on-email-change-requested.handler.ts` |
+
+Variables : `{firstName}`, `{confirmationLink}`, `{expiresIn}`
 
 ---
 

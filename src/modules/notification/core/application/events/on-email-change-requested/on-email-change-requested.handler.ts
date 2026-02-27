@@ -20,7 +20,11 @@ export class OnEmailChangeRequestedHandler implements IEventHandler<EmailChangeR
     );
 
     const frontendUrl = this.configService.get<string>('app.frontendUrl', 'http://localhost:3000');
-    const confirmationLink = `${frontendUrl}/confirm-email-change?token=${event.confirmationToken}`;
+    const verificationPath = this.configService.get<string>(
+      'app.emailVerificationPath',
+      '/verify-email',
+    );
+    const confirmationLink = `${frontendUrl}${verificationPath}?token=${event.confirmationToken}`;
 
     await this.commandBus.execute(
       new SendNotificationCommand(

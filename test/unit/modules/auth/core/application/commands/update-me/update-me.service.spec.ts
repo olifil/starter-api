@@ -1,7 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventBus } from '@nestjs/cqrs';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import { UpdateMeService } from '@modules/auth/core/application/commands/update-me/update-me.service';
 import { UpdateMeCommand } from '@modules/auth/core/application/commands/update-me/update-me.command';
 import {
@@ -12,6 +10,7 @@ import {
   IRefreshTokenRepository,
   REFRESH_TOKEN_REPOSITORY,
 } from '@modules/auth/core/domain/repositories/refresh-token.repository.interface';
+import { EmailTokenService } from '@modules/auth/core/application/services/email-token.service';
 import { User } from '@modules/user/core/domain/entities/user.entity';
 import { Email } from '@modules/user/core/domain/value-objects/email.vo';
 import { HashedPassword } from '@modules/user/core/domain/value-objects/hashed-password.vo';
@@ -25,15 +24,11 @@ describe('UpdateMeService', () => {
   let service: UpdateMeService;
   let userRepository: jest.Mocked<IUserRepository>;
   let refreshTokenRepository: jest.Mocked<IRefreshTokenRepository>;
+  let emailTokenService: jest.Mocked<EmailTokenService>;
   let eventBus: jest.Mocked<EventBus>;
-  let jwtService: jest.Mocked<JwtService>;
   let matomoService: jest.Mocked<MatomoService>;
 
   let mockUser: User;
-
-  const mockConfig: Record<string, string> = {
-    'jwt.resetSecret': 'test-reset-secret',
-  };
 
   const createMockUser = (): User =>
     new User({
@@ -59,20 +54,12 @@ describe('UpdateMeService', () => {
       revokeAllByUserId: jest.fn(),
     };
 
+    const mockEmailTokenService = {
+      generateEmailChangeToken: jest.fn(),
+    };
+
     const mockEventBus: Partial<EventBus> = {
       publish: jest.fn(),
-    };
-
-    const mockJwtService: Partial<JwtService> = {
-      signAsync: jest.fn(),
-    };
-
-    const mockConfigService: Partial<ConfigService> = {
-      get: jest
-        .fn()
-        .mockImplementation((key: string, defaultValue?: unknown) =>
-          key in mockConfig ? mockConfig[key] : defaultValue,
-        ),
     };
 
     const mockMatomoService: Partial<MatomoService> = {
@@ -84,9 +71,8 @@ describe('UpdateMeService', () => {
         UpdateMeService,
         { provide: USER_REPOSITORY, useValue: mockUserRepository },
         { provide: REFRESH_TOKEN_REPOSITORY, useValue: mockRefreshTokenRepository },
+        { provide: EmailTokenService, useValue: mockEmailTokenService },
         { provide: EventBus, useValue: mockEventBus },
-        { provide: JwtService, useValue: mockJwtService },
-        { provide: ConfigService, useValue: mockConfigService },
         { provide: MatomoService, useValue: mockMatomoService },
       ],
     }).compile();
@@ -94,8 +80,8 @@ describe('UpdateMeService', () => {
     service = module.get<UpdateMeService>(UpdateMeService);
     userRepository = module.get(USER_REPOSITORY);
     refreshTokenRepository = module.get(REFRESH_TOKEN_REPOSITORY);
+    emailTokenService = module.get(EmailTokenService);
     eventBus = module.get(EventBus);
-    jwtService = module.get(JwtService);
     matomoService = module.get(MatomoService);
   });
 
@@ -241,7 +227,7 @@ describe('UpdateMeService', () => {
         await service.execute(command);
 
         // Assert — vérifie que le hash bcrypt est bien formaté
-        const hashedPassword = changePasswordSpy.mock.calls[0][0] as HashedPassword;
+        const hashedPassword = changePasswordSpy.mock.calls[0][0];
         expect(hashedPassword.hash).toMatch(/^\$2[aby]\$/);
       });
 
@@ -269,7 +255,7 @@ describe('UpdateMeService', () => {
     });
 
     describe('email change initiation', () => {
-      it('should generate a JWT token and publish EmailChangeRequestedEvent', async () => {
+      it('should generate a token via EmailTokenService and publish EmailChangeRequestedEvent', async () => {
         // Arrange
         const command = new UpdateMeCommand(
           'user-1',
@@ -282,15 +268,18 @@ describe('UpdateMeService', () => {
         userRepository.findById.mockResolvedValue(mockUser);
         userRepository.existsByEmail.mockResolvedValue(false);
         userRepository.update.mockResolvedValue(mockUser);
-        jwtService.signAsync.mockResolvedValue('email-change-token');
+        emailTokenService.generateEmailChangeToken.mockResolvedValue({
+          token: 'email-change-token',
+          expiresIn: '1h',
+        });
 
         // Act
         await service.execute(command);
 
         // Assert
-        expect(jwtService.signAsync).toHaveBeenCalledWith(
-          { sub: 'user-1', newEmail: 'new@example.com', type: 'email-change' },
-          { secret: 'test-reset-secret', expiresIn: '1h' },
+        expect(emailTokenService.generateEmailChangeToken).toHaveBeenCalledWith(
+          'user-1',
+          'new@example.com',
         );
         expect(eventBus.publish).toHaveBeenCalledWith(expect.any(EmailChangeRequestedEvent));
       });
@@ -308,7 +297,10 @@ describe('UpdateMeService', () => {
         userRepository.findById.mockResolvedValue(mockUser);
         userRepository.existsByEmail.mockResolvedValue(false);
         userRepository.update.mockResolvedValue(mockUser);
-        jwtService.signAsync.mockResolvedValue('email-change-token');
+        emailTokenService.generateEmailChangeToken.mockResolvedValue({
+          token: 'email-change-token',
+          expiresIn: '1h',
+        });
 
         // Act
         await service.execute(command);
@@ -336,7 +328,10 @@ describe('UpdateMeService', () => {
         userRepository.findById.mockResolvedValue(mockUser);
         userRepository.existsByEmail.mockResolvedValue(false);
         userRepository.update.mockResolvedValue(mockUser);
-        jwtService.signAsync.mockResolvedValue('email-change-token');
+        emailTokenService.generateEmailChangeToken.mockResolvedValue({
+          token: 'email-change-token',
+          expiresIn: '1h',
+        });
 
         // Act
         await service.execute(command);
@@ -358,7 +353,10 @@ describe('UpdateMeService', () => {
         userRepository.findById.mockResolvedValue(mockUser);
         userRepository.existsByEmail.mockResolvedValue(false);
         userRepository.update.mockResolvedValue(mockUser);
-        jwtService.signAsync.mockResolvedValue('email-change-token');
+        emailTokenService.generateEmailChangeToken.mockResolvedValue({
+          token: 'email-change-token',
+          expiresIn: '1h',
+        });
 
         // Act
         await service.execute(command);
