@@ -112,7 +112,11 @@ export class NotificationHttpController {
     description: 'Filtrer par statut',
     enum: NotificationStatusValues,
   })
-  @ApiResponse({ status: 200, description: 'Liste paginée des notifications' })
+  @ApiResponse({
+    status: 200,
+    description: 'Liste paginée des notifications',
+    type: PaginatedResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Paramètre de filtre invalide' })
   async getMyNotifications(
     @CurrentUser() user: { userId: string },
@@ -167,7 +171,11 @@ export class NotificationHttpController {
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Marquer une notification comme lue' })
   @ApiParam({ name: 'id', description: 'ID de la notification' })
-  @ApiResponse({ status: 200, description: 'Notification marquée comme lue' })
+  @ApiResponse({
+    status: 200,
+    description: 'Notification marquée comme lue',
+    type: NotificationResponseDto,
+  })
   @ApiResponse({ status: 404, description: 'Notification non trouvée' })
   async markAsRead(
     @Param('id') id: string,
@@ -192,7 +200,11 @@ export class NotificationHttpController {
     description: 'Filtrer par statut (défaut: SENT)',
     enum: NotificationStatusValues,
   })
-  @ApiResponse({ status: 200, description: 'Nombre de notifications non lues' })
+  @ApiResponse({
+    status: 200,
+    description: 'Nombre de notifications non lues',
+    schema: { properties: { count: { type: 'number' } } },
+  })
   @ApiResponse({ status: 400, description: 'Paramètre de filtre invalide' })
   async getUnreadCount(
     @CurrentUser() user: { userId: string },
@@ -234,7 +246,16 @@ export class NotificationHttpController {
   @ApiParam({ name: 'type', description: 'Type de notification', example: 'welcome' })
   @ApiQuery({ name: 'lang', required: false, description: 'Langue', example: 'fr' })
   @ApiQuery({ name: 'channel', required: false, description: 'Canal', example: 'EMAIL' })
-  @ApiResponse({ status: 200, description: 'Template rendu' })
+  @ApiResponse({
+    status: 200,
+    description: 'Template rendu',
+    schema: {
+      properties: {
+        subject: { type: 'string' },
+        body: { type: 'string' },
+      },
+    },
+  })
   preview(
     @Param('type') type: string,
     @Query('lang') lang: string = 'fr',
