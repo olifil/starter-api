@@ -432,7 +432,7 @@ describe('Notification (Integration)', () => {
     });
   });
 
-  describe('PATCH /notifications/:id/read', () => {
+  describe('PATCH /notifications/read', () => {
     let notificationId: string;
 
     beforeEach(async () => {
@@ -449,39 +449,103 @@ describe('Notification (Integration)', () => {
       notificationId = notification.id;
     });
 
-    it('should mark notification as read', async () => {
-      const response = await request(app.getHttpServer())
-        .patch(`/notifications/${notificationId}/read`)
-        .set('Authorization', `Bearer ${userToken}`)
-        .expect(200);
+    describe('with id (single notification)', () => {
+      it('should mark notification as read and return 204', async () => {
+        await request(app.getHttpServer())
+          .patch(`/notifications/read?id=${notificationId}`)
+          .set('Authorization', `Bearer ${userToken}`)
+          .expect(204);
 
-      expect(response.body).toHaveProperty('id', notificationId);
-
-      // Vérifier en base
-      const updated = await prisma.notification.findUnique({
-        where: { id: notificationId },
+        const updated = await prisma.notification.findUnique({ where: { id: notificationId } });
+        expect(updated!.status).toBe(NotificationStatus.READ);
+        expect(updated!.readAt).not.toBeNull();
       });
-      expect(updated!.status).toBe(NotificationStatus.READ);
-      expect(updated!.readAt).not.toBeNull();
+
+      it('should return 404 when notification belongs to another user', async () => {
+        await request(app.getHttpServer())
+          .patch(`/notifications/read?id=${notificationId}`)
+          .set('Authorization', `Bearer ${otherUserToken}`)
+          .expect(404);
+      });
+
+      it('should return 404 for non-existent notification', async () => {
+        const fakeId = '00000000-0000-0000-0000-000000000000';
+        await request(app.getHttpServer())
+          .patch(`/notifications/read?id=${fakeId}`)
+          .set('Authorization', `Bearer ${userToken}`)
+          .expect(404);
+      });
     });
 
-    it('should return 404 when notification belongs to another user', async () => {
-      await request(app.getHttpServer())
-        .patch(`/notifications/${notificationId}/read`)
-        .set('Authorization', `Bearer ${otherUserToken}`)
-        .expect(404);
-    });
+    describe('without id (bulk)', () => {
+      beforeEach(async () => {
+        await prisma.notification.createMany({
+          data: [
+            {
+              userId,
+              type: 'test',
+              channel: NotificationChannel.EMAIL,
+              status: NotificationStatus.SENT,
+              body: 'msg',
+              sentAt: new Date(),
+            },
+            {
+              userId,
+              type: 'test',
+              channel: NotificationChannel.EMAIL,
+              status: NotificationStatus.SENT,
+              body: 'msg',
+              sentAt: new Date(),
+            },
+            {
+              userId,
+              type: 'test',
+              channel: NotificationChannel.EMAIL,
+              status: NotificationStatus.FAILED,
+              body: 'msg',
+            },
+          ],
+        });
+      });
 
-    it('should return 404 for non-existent notification', async () => {
-      const fakeId = '00000000-0000-0000-0000-000000000000';
-      await request(app.getHttpServer())
-        .patch(`/notifications/${fakeId}/read`)
-        .set('Authorization', `Bearer ${userToken}`)
-        .expect(404);
-    });
+      it('should mark all SENT notifications as read and return count', async () => {
+        const response = await request(app.getHttpServer())
+          .patch('/notifications/read')
+          .set('Authorization', `Bearer ${userToken}`)
+          .expect(200);
 
-    it('should return 401 without authentication', async () => {
-      await request(app.getHttpServer()).patch(`/notifications/${notificationId}/read`).expect(401);
+        // 1 WEBSOCKET/SENT + 2 EMAIL/SENT = 3
+        expect(response.body).toHaveProperty('count', 3);
+
+        const remaining = await prisma.notification.count({
+          where: { userId, status: NotificationStatus.SENT },
+        });
+        expect(remaining).toBe(0);
+      });
+
+      it('should filter by channel when provided', async () => {
+        const response = await request(app.getHttpServer())
+          .patch('/notifications/read?channel=EMAIL')
+          .set('Authorization', `Bearer ${userToken}`)
+          .expect(200);
+
+        expect(response.body).toHaveProperty('count', 2);
+
+        // La notification WEBSOCKET reste SENT
+        const websocket = await prisma.notification.findUnique({ where: { id: notificationId } });
+        expect(websocket!.status).toBe(NotificationStatus.SENT);
+      });
+
+      it('should return 400 for invalid channel', async () => {
+        await request(app.getHttpServer())
+          .patch('/notifications/read?channel=INVALID')
+          .set('Authorization', `Bearer ${userToken}`)
+          .expect(400);
+      });
+
+      it('should return 401 without authentication', async () => {
+        await request(app.getHttpServer()).patch('/notifications/read').expect(401);
+      });
     });
   });
 });

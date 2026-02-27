@@ -2,6 +2,8 @@ import {
   BadRequestException,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Post,
   Patch,
   Param,
@@ -37,6 +39,7 @@ import {
 import { NotificationType } from '../../core/domain/value-objects/notification-type.vo';
 import { SendNotificationCommand } from '../../core/application/commands/send-notification/send-notification.command';
 import { MarkAsReadCommand } from '../../core/application/commands/mark-as-read/mark-as-read.command';
+import { MarkAllAsReadCommand } from '../../core/application/commands/mark-all-as-read/mark-all-as-read.command';
 import { GetNotificationsQuery } from '../../core/application/queries/get-notifications/get-notifications.query';
 import { PaginatedResponseDto } from '@modules/user/core/application/dtos/pagination.dto';
 import {
@@ -167,22 +170,51 @@ export class NotificationHttpController {
     return this.queryBus.execute(query);
   }
 
-  @Patch(':id/read')
+  @Patch('read')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Marquer une notification comme lue' })
-  @ApiParam({ name: 'id', description: 'ID de la notification' })
+  @ApiOperation({ summary: 'Marquer une ou toutes les notifications comme lues' })
+  @ApiQuery({
+    name: 'id',
+    required: false,
+    description:
+      'ID de la notification à marquer comme lue (si absent : toutes les notifications SENT)',
+  })
+  @ApiQuery({
+    name: 'channel',
+    required: false,
+    description: 'Filtrer par canal (ignoré si id est fourni)',
+    enum: NotificationChannelValues,
+  })
+  @ApiResponse({ status: 204, description: 'Notification marquée comme lue' })
   @ApiResponse({
     status: 200,
-    description: 'Notification marquée comme lue',
-    type: NotificationResponseDto,
+    description: 'Nombre de notifications marquées comme lues',
+    schema: { properties: { count: { type: 'number' } } },
   })
+  @ApiResponse({ status: 400, description: 'Paramètre invalide' })
   @ApiResponse({ status: 404, description: 'Notification non trouvée' })
   async markAsRead(
-    @Param('id') id: string,
     @CurrentUser() user: { userId: string },
-  ): Promise<NotificationResponseDto> {
-    const command = new MarkAsReadCommand(id, user.userId);
-    return this.commandBus.execute(command);
+    @Query('id') id?: string,
+    @Query('channel') channelParam?: string,
+  ): Promise<{ count: number } | void> {
+    if (id !== undefined) {
+      await this.commandBus.execute(new MarkAsReadCommand(id, user.userId));
+      return;
+    }
+
+    let channel: NotificationChannel | undefined;
+    if (channelParam !== undefined) {
+      if (!isValidNotificationChannel(channelParam)) {
+        throw new BadRequestException(
+          `Canal invalide: ${channelParam}. Valeurs acceptées: ${NotificationChannelValues.join(', ')}`,
+        );
+      }
+      channel = channelParam;
+    }
+
+    return this.commandBus.execute(new MarkAllAsReadCommand(user.userId, channel));
   }
 
   @Get('unread-count')

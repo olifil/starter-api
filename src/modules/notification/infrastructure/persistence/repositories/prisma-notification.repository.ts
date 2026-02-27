@@ -78,6 +78,16 @@ export class PrismaNotificationRepository implements INotificationRepository {
     });
   }
 
+  async markAllAsRead(userId: string, channel?: NotificationChannel): Promise<number> {
+    const now = new Date();
+    const result = await this.prisma.notification.updateMany({
+      where: { userId, status: 'SENT', ...(channel && { channel }) },
+      data: { status: 'READ', readAt: now, updatedAt: now },
+    });
+    this.logger.log(`${result.count} notification(s) marquée(s) comme lues pour user ${userId}`);
+    return result.count;
+  }
+
   private toDomain(prisma: PrismaNotification): Notification {
     return new Notification({
       id: prisma.id,

@@ -5,7 +5,6 @@ import {
   INotificationRepository,
   NOTIFICATION_REPOSITORY,
 } from '../../../domain/repositories/notification.repository.interface';
-import { NotificationResponseDto } from '../../dtos/notification-response.dto';
 import { NotificationNotFoundException } from '../../exceptions/notification-not-found.exception';
 import { MatomoService } from '@shared/infrastructure/analytics/matomo.service';
 
@@ -18,7 +17,7 @@ export class MarkAsReadService implements ICommandHandler<MarkAsReadCommand> {
     private readonly matomoService: MatomoService,
   ) {}
 
-  async execute(command: MarkAsReadCommand): Promise<NotificationResponseDto> {
+  async execute(command: MarkAsReadCommand): Promise<void> {
     const notification = await this.notificationRepository.findById(command.notificationId);
 
     if (!notification || notification.userId !== command.userId) {
@@ -26,8 +25,7 @@ export class MarkAsReadService implements ICommandHandler<MarkAsReadCommand> {
     }
 
     notification.markAsRead();
-    const updated = await this.notificationRepository.update(notification);
+    await this.notificationRepository.update(notification);
     await this.matomoService.trackNotificationMarkedAsRead(command.userId);
-    return NotificationResponseDto.fromDomain(updated);
   }
 }

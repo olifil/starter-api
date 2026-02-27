@@ -33,6 +33,7 @@ describe('MarkAsReadService', () => {
       findByUserId: jest.fn(),
       update: jest.fn(),
       countByUserAndStatus: jest.fn(),
+      markAllAsRead: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -52,7 +53,7 @@ describe('MarkAsReadService', () => {
   });
 
   describe('execute', () => {
-    it('should mark notification as read', async () => {
+    it('should mark notification as read and return void', async () => {
       const notification = makeNotification();
       const updated = makeNotification({ status: 'READ', readAt: new Date() });
 
@@ -64,7 +65,7 @@ describe('MarkAsReadService', () => {
 
       expect(notificationRepository.findById).toHaveBeenCalledWith('notif-1');
       expect(notificationRepository.update).toHaveBeenCalledWith(notification);
-      expect(result.status).toBe('READ');
+      expect(result).toBeUndefined();
     });
 
     it('should throw NotificationNotFoundException when notification not found', async () => {

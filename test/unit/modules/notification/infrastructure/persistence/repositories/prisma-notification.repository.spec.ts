@@ -28,6 +28,7 @@ const mockPrisma = {
     findUnique: jest.fn(),
     findMany: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
     count: jest.fn(),
   },
 };
@@ -310,6 +311,40 @@ describe('PrismaNotificationRepository', () => {
       expect(mockPrisma.notification.count).toHaveBeenCalledWith({
         where: { userId: 'user-1', status: 'SENT' },
       });
+    });
+  });
+
+  describe('markAllAsRead', () => {
+    it('should call prisma.notification.updateMany with status SENT and return count', async () => {
+      mockPrisma.notification.updateMany.mockResolvedValue({ count: 4 });
+
+      const result = await repository.markAllAsRead('user-1');
+
+      expect(mockPrisma.notification.updateMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', status: 'SENT' },
+        data: expect.objectContaining({ status: 'READ', readAt: expect.any(Date) }),
+      });
+      expect(result).toBe(4);
+    });
+
+    it('should filter by channel when provided', async () => {
+      mockPrisma.notification.updateMany.mockResolvedValue({ count: 2 });
+
+      const result = await repository.markAllAsRead('user-1', 'EMAIL');
+
+      expect(mockPrisma.notification.updateMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', status: 'SENT', channel: 'EMAIL' },
+        data: expect.objectContaining({ status: 'READ' }),
+      });
+      expect(result).toBe(2);
+    });
+
+    it('should return 0 when no notifications match', async () => {
+      mockPrisma.notification.updateMany.mockResolvedValue({ count: 0 });
+
+      const result = await repository.markAllAsRead('user-no-notifs');
+
+      expect(result).toBe(0);
     });
   });
 

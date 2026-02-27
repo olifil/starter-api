@@ -14,6 +14,7 @@ import { TEMPLATE_RENDERER } from './core/application/services/template-renderer
 import { SendNotificationService } from './core/application/commands/send-notification/send-notification.service';
 import { UpdatePreferencesService } from './core/application/commands/update-preferences/update-preferences.service';
 import { MarkAsReadService } from './core/application/commands/mark-as-read/mark-as-read.service';
+import { MarkAllAsReadService } from './core/application/commands/mark-all-as-read/mark-all-as-read.service';
 import { SendContactEmailService } from './core/application/commands/send-contact-email/send-contact-email.service';
 import { RegisterPushSubscriptionService } from './core/application/commands/register-push-subscription/register-push-subscription.service';
 import { DeletePushSubscriptionService } from './core/application/commands/delete-push-subscription/delete-push-subscription.service';
@@ -63,6 +64,7 @@ const CommandServices = [
   SendNotificationService,
   UpdatePreferencesService,
   MarkAsReadService,
+  MarkAllAsReadService,
   SendContactEmailService,
   RegisterPushSubscriptionService,
   DeletePushSubscriptionService,

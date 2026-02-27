@@ -23,6 +23,7 @@ export interface INotificationRepository {
     status: NotificationStatus,
     channel?: NotificationChannel,
   ): Promise<number>;
+  markAllAsRead(userId: string, channel?: NotificationChannel): Promise<number>;
 }
 
 export const NOTIFICATION_REPOSITORY = Symbol('NOTIFICATION_REPOSITORY');

@@ -6,6 +6,7 @@ import { NotificationHttpController } from '@modules/notification/interface/http
 import { SendNotificationCommand } from '@modules/notification/core/application/commands/send-notification/send-notification.command';
 import { GetNotificationsQuery } from '@modules/notification/core/application/queries/get-notifications/get-notifications.query';
 import { MarkAsReadCommand } from '@modules/notification/core/application/commands/mark-as-read/mark-as-read.command';
+import { MarkAllAsReadCommand } from '@modules/notification/core/application/commands/mark-all-as-read/mark-all-as-read.command';
 import {
   ITemplateRenderer,
   TEMPLATE_RENDERER,
@@ -149,15 +150,43 @@ describe('NotificationHttpController', () => {
   });
 
   describe('markAsRead', () => {
-    it('should dispatch MarkAsReadCommand', async () => {
+    it('should dispatch MarkAsReadCommand and return void when id is provided', async () => {
       const user = { userId: 'user-1' };
-      const expected = { id: 'notif-1', status: 'READ' };
-      commandBus.execute.mockResolvedValue(expected);
+      commandBus.execute.mockResolvedValue(undefined);
 
-      const result = await controller.markAsRead('notif-1', user);
+      const result = await controller.markAsRead(user, 'notif-1');
 
       expect(commandBus.execute).toHaveBeenCalledWith(new MarkAsReadCommand('notif-1', 'user-1'));
-      expect(result).toBe(expected);
+      expect(result).toBeUndefined();
+    });
+
+    it('should dispatch MarkAllAsReadCommand and return count when id is not provided', async () => {
+      const user = { userId: 'user-1' };
+      commandBus.execute.mockResolvedValue({ count: 5 });
+
+      const result = await controller.markAsRead(user);
+
+      expect(commandBus.execute).toHaveBeenCalledWith(
+        new MarkAllAsReadCommand('user-1', undefined),
+      );
+      expect(result).toEqual({ count: 5 });
+    });
+
+    it('should dispatch MarkAllAsReadCommand with channel filter', async () => {
+      const user = { userId: 'user-1' };
+      commandBus.execute.mockResolvedValue({ count: 2 });
+
+      await controller.markAsRead(user, undefined, 'EMAIL');
+
+      expect(commandBus.execute).toHaveBeenCalledWith(new MarkAllAsReadCommand('user-1', 'EMAIL'));
+    });
+
+    it('should throw BadRequestException for invalid channel in bulk mode', async () => {
+      const user = { userId: 'user-1' };
+
+      await expect(controller.markAsRead(user, undefined, 'INVALID')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 

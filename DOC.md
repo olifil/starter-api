@@ -1190,10 +1190,26 @@ Les filtres sont cumulables. Un `channel` ou `status` invalide retourne `400 Bad
 
 #### Marquer comme lue _(Authentifié)_
 
+Route unifiée avec `id` optionnel en query param :
+
 ```http
-PATCH /api/v1/notifications/:id/read
+# Marquer une notification spécifique → 204 No Content
+PATCH /api/v1/notifications/read?id=<uuid>
+Authorization: Bearer <token>
+
+# Marquer toutes les notifications SENT → { "count": N }
+PATCH /api/v1/notifications/read
+PATCH /api/v1/notifications/read?channel=EMAIL
 Authorization: Bearer <token>
 ```
+
+| Paramètre | Type | Obligatoire | Description |
+|-----------|------|-------------|-------------|
+| `id` | `string (uuid)` | Non | ID de la notification à marquer comme lue |
+| `channel` | `NotificationChannel` | Non | Filtrer par canal (ignoré si `id` fourni) |
+
+- Si `id` fourni : retourne `204 No Content`, `404` si introuvable ou appartient à un autre utilisateur
+- Si `id` absent : marque toutes les notifications au statut `SENT`, retourne `{ count: number }`
 
 #### Nombre de non-lues _(Authentifié)_
 
@@ -2706,7 +2722,8 @@ git add prisma/       # Commiter les fichiers de migration
 |---------|-------|---------|-------|
 | POST | `/send` | `NotificationResponseDto[]` | ADMIN |
 | GET | `/` | `NotificationResponseDto[]` | Authentifié |
-| PATCH | `/:id/read` | `204` | Authentifié (owner) |
+| PATCH | `/read?id=` | `204` | Authentifié (owner) — notification unique |
+| PATCH | `/read?channel=` | `{count: number}` | Authentifié — toutes les SENT |
 | GET | `/unread-count?channel=&status=` | `{count: number}` | Authentifié |
 | GET | `/preferences` | `NotificationPreferenceDto[]` | Authentifié |
 | PUT | `/preferences` | `204` | Authentifié |
