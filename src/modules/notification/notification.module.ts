@@ -15,6 +15,7 @@ import { SendNotificationService } from './core/application/commands/send-notifi
 import { UpdatePreferencesService } from './core/application/commands/update-preferences/update-preferences.service';
 import { MarkAsReadService } from './core/application/commands/mark-as-read/mark-as-read.service';
 import { MarkAllAsReadService } from './core/application/commands/mark-all-as-read/mark-all-as-read.service';
+import { DeleteNotificationService } from './core/application/commands/delete-notification/delete-notification.service';
 import { SendContactEmailService } from './core/application/commands/send-contact-email/send-contact-email.service';
 import { RegisterPushSubscriptionService } from './core/application/commands/register-push-subscription/register-push-subscription.service';
 import { DeletePushSubscriptionService } from './core/application/commands/delete-push-subscription/delete-push-subscription.service';
@@ -65,6 +66,7 @@ const CommandServices = [
   UpdatePreferencesService,
   MarkAsReadService,
   MarkAllAsReadService,
+  DeleteNotificationService,
   SendContactEmailService,
   RegisterPushSubscriptionService,
   DeletePushSubscriptionService,

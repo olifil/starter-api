@@ -548,4 +548,51 @@ describe('Notification (Integration)', () => {
       });
     });
   });
+
+  describe('DELETE /notifications/:id', () => {
+    let notificationId: string;
+
+    beforeEach(async () => {
+      const notification = await prisma.notification.create({
+        data: {
+          userId,
+          type: 'test-notification',
+          channel: NotificationChannel.EMAIL,
+          status: NotificationStatus.SENT,
+          body: 'To be deleted',
+          sentAt: new Date(),
+        },
+      });
+      notificationId = notification.id;
+    });
+
+    it('should delete the notification and return 204', async () => {
+      await request(app.getHttpServer())
+        .delete(`/notifications/${notificationId}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(204);
+
+      const deleted = await prisma.notification.findUnique({ where: { id: notificationId } });
+      expect(deleted).toBeNull();
+    });
+
+    it('should return 404 when notification belongs to another user', async () => {
+      await request(app.getHttpServer())
+        .delete(`/notifications/${notificationId}`)
+        .set('Authorization', `Bearer ${otherUserToken}`)
+        .expect(404);
+    });
+
+    it('should return 404 for non-existent notification', async () => {
+      const fakeId = '00000000-0000-0000-0000-000000000000';
+      await request(app.getHttpServer())
+        .delete(`/notifications/${fakeId}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(404);
+    });
+
+    it('should return 401 without authentication', async () => {
+      await request(app.getHttpServer()).delete(`/notifications/${notificationId}`).expect(401);
+    });
+  });
 });

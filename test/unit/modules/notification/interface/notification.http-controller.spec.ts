@@ -7,6 +7,7 @@ import { SendNotificationCommand } from '@modules/notification/core/application/
 import { GetNotificationsQuery } from '@modules/notification/core/application/queries/get-notifications/get-notifications.query';
 import { MarkAsReadCommand } from '@modules/notification/core/application/commands/mark-as-read/mark-as-read.command';
 import { MarkAllAsReadCommand } from '@modules/notification/core/application/commands/mark-all-as-read/mark-all-as-read.command';
+import { DeleteNotificationCommand } from '@modules/notification/core/application/commands/delete-notification/delete-notification.command';
 import {
   ITemplateRenderer,
   TEMPLATE_RENDERER,
@@ -259,6 +260,19 @@ describe('NotificationHttpController', () => {
 
       await expect(controller.getUnreadCount(user, undefined, 'INVALID_STATUS')).rejects.toThrow(
         BadRequestException,
+      );
+    });
+  });
+
+  describe('deleteNotification', () => {
+    it('should dispatch DeleteNotificationCommand', async () => {
+      const user = { userId: 'user-1' };
+      commandBus.execute.mockResolvedValue(undefined);
+
+      await controller.deleteNotification('notif-1', user);
+
+      expect(commandBus.execute).toHaveBeenCalledWith(
+        new DeleteNotificationCommand('notif-1', 'user-1'),
       );
     });
   });

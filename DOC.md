@@ -1211,6 +1211,16 @@ Authorization: Bearer <token>
 - Si `id` fourni : retourne `204 No Content`, `404` si introuvable ou appartient à un autre utilisateur
 - Si `id` absent : marque toutes les notifications au statut `SENT`, retourne `{ count: number }`
 
+#### Supprimer une notification _(Authentifié)_
+
+```http
+DELETE /api/v1/notifications/:id
+Authorization: Bearer <token>
+→ 204 No Content
+```
+
+Retourne `404` si la notification est introuvable ou appartient à un autre utilisateur.
+
 #### Nombre de non-lues _(Authentifié)_
 
 ```http
@@ -2724,6 +2734,7 @@ git add prisma/       # Commiter les fichiers de migration
 | GET | `/` | `NotificationResponseDto[]` | Authentifié |
 | PATCH | `/read?id=` | `204` | Authentifié (owner) — notification unique |
 | PATCH | `/read?channel=` | `{count: number}` | Authentifié — toutes les SENT |
+| DELETE | `/:id` | `204` | Authentifié (owner) |
 | GET | `/unread-count?channel=&status=` | `{count: number}` | Authentifié |
 | GET | `/preferences` | `NotificationPreferenceDto[]` | Authentifié |
 | PUT | `/preferences` | `204` | Authentifié |

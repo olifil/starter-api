@@ -24,6 +24,7 @@ export interface INotificationRepository {
     channel?: NotificationChannel,
   ): Promise<number>;
   markAllAsRead(userId: string, channel?: NotificationChannel): Promise<number>;
+  delete(id: string): Promise<void>;
 }
 
 export const NOTIFICATION_REPOSITORY = Symbol('NOTIFICATION_REPOSITORY');

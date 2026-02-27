@@ -29,6 +29,7 @@ const mockPrisma = {
     findMany: jest.fn(),
     update: jest.fn(),
     updateMany: jest.fn(),
+    delete: jest.fn(),
     count: jest.fn(),
   },
 };
@@ -345,6 +346,16 @@ describe('PrismaNotificationRepository', () => {
       const result = await repository.markAllAsRead('user-no-notifs');
 
       expect(result).toBe(0);
+    });
+  });
+
+  describe('delete', () => {
+    it('should call prisma.notification.delete with the correct id', async () => {
+      mockPrisma.notification.delete.mockResolvedValue(mockPrismaNotification);
+
+      await repository.delete('notif-1');
+
+      expect(mockPrisma.notification.delete).toHaveBeenCalledWith({ where: { id: 'notif-1' } });
     });
   });
 

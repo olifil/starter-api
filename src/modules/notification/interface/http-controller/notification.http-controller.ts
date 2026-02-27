@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -40,6 +41,7 @@ import { NotificationType } from '../../core/domain/value-objects/notification-t
 import { SendNotificationCommand } from '../../core/application/commands/send-notification/send-notification.command';
 import { MarkAsReadCommand } from '../../core/application/commands/mark-as-read/mark-as-read.command';
 import { MarkAllAsReadCommand } from '../../core/application/commands/mark-all-as-read/mark-all-as-read.command';
+import { DeleteNotificationCommand } from '../../core/application/commands/delete-notification/delete-notification.command';
 import { GetNotificationsQuery } from '../../core/application/queries/get-notifications/get-notifications.query';
 import { PaginatedResponseDto } from '@modules/user/core/application/dtos/pagination.dto';
 import {
@@ -215,6 +217,20 @@ export class NotificationHttpController {
     }
 
     return this.commandBus.execute(new MarkAllAsReadCommand(user.userId, channel));
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Supprimer une notification' })
+  @ApiParam({ name: 'id', description: 'ID de la notification' })
+  @ApiResponse({ status: 204, description: 'Notification supprimée' })
+  @ApiResponse({ status: 404, description: 'Notification non trouvée' })
+  async deleteNotification(
+    @Param('id') id: string,
+    @CurrentUser() user: { userId: string },
+  ): Promise<void> {
+    await this.commandBus.execute(new DeleteNotificationCommand(id, user.userId));
   }
 
   @Get('unread-count')
