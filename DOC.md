@@ -1328,6 +1328,13 @@ function reconnectWithNewToken(newToken) {
 | `notification:new` | `{ subject?, body, metadata? }` | Nouvelle notification reçue |
 | `notification:read` | `{ notificationId }` | Notification marquée comme lue |
 
+#### Points importants
+
+1. **`WS_ENABLED=true`** doit être dans le `.env` du backend, sinon le canal est désactivé et les envois échoueront silencieusement.
+2. **Multi-appareils** : le backend gère nativement plusieurs connexions simultanées par utilisateur.
+3. **Authentification à la connexion uniquement** : le token est vérifié lors du handshake. Si l'access token expire pendant la session, la connexion reste ouverte — prévoir une reconnexion avec un token frais si des durées courtes sont utilisées.
+4. **Payload `notification:new`** : `{ subject?: string, body: string, metadata?: object }`.
+
 ---
 
 ### Web Push — Notifications navigateur hors-ligne
