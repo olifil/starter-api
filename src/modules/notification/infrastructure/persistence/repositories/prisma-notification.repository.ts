@@ -17,7 +17,7 @@ export class PrismaNotificationRepository implements INotificationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async save(notification: Notification): Promise<Notification> {
-    const data = this.toPrisma(notification);
+    const data = this.toCreateData(notification);
     const saved = await this.prisma.notification.create({ data });
     this.logger.log(`Notification created: ${saved.id}`);
     return this.toDomain(saved);
@@ -59,7 +59,7 @@ export class PrismaNotificationRepository implements INotificationRepository {
   }
 
   async update(notification: Notification): Promise<Notification> {
-    const data = this.toPrisma(notification);
+    const data = this.toUpdateData(notification);
     const updated = await this.prisma.notification.update({
       where: { id: notification.id },
       data,
@@ -108,9 +108,15 @@ export class PrismaNotificationRepository implements INotificationRepository {
     });
   }
 
-  private toPrisma(notification: Notification) {
+  private toCreateData(notification: Notification) {
     return {
       id: notification.id,
+      ...this.toUpdateData(notification),
+    };
+  }
+
+  private toUpdateData(notification: Notification) {
+    return {
       userId: notification.userId,
       type: notification.type.value,
       channel: notification.channel,

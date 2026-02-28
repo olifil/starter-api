@@ -301,7 +301,7 @@ describe('PrismaNotificationRepository', () => {
       expect(mockPrisma.notification.update).toHaveBeenCalledTimes(1);
       expect(mockPrisma.notification.update).toHaveBeenCalledWith({
         where: { id: 'notif-1' },
-        data: expect.objectContaining({ id: 'notif-1' }),
+        data: expect.not.objectContaining({ id: expect.anything() }),
       });
       expect(result).toBeInstanceOf(Notification);
     });

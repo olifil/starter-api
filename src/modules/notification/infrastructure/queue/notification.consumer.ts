@@ -95,7 +95,7 @@ export class NotificationConsumer extends WorkerHost {
     channel: string,
   ): Promise<void> {
     const notification = await this.notificationRepository.findById(notificationId);
-    if (notification) {
+    if (notification && notification.status !== 'DELETED') {
       notification.markAsSent();
       await this.notificationRepository.update(notification);
       for (const event of notification.domainEvents) {
@@ -113,7 +113,7 @@ export class NotificationConsumer extends WorkerHost {
     channel: string,
   ): Promise<void> {
     const notification = await this.notificationRepository.findById(notificationId);
-    if (notification) {
+    if (notification && notification.status !== 'DELETED') {
       notification.markAsFailed(reason);
       await this.notificationRepository.update(notification);
       for (const event of notification.domainEvents) {
