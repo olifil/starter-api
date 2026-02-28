@@ -23,6 +23,7 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Role } from '@prisma/client';
 import { Roles, RolesGuard } from '@shared/authorization';
 import { CurrentUser } from '@shared/decorators/current-user.decorator';
@@ -53,6 +54,7 @@ import {
   NOTIFICATION_REPOSITORY,
 } from '../../core/domain/repositories/notification.repository.interface';
 
+@SkipThrottle({ strict: true })
 @Controller('notifications')
 @ApiTags('Notifications')
 export class NotificationHttpController {
