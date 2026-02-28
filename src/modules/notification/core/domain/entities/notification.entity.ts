@@ -139,6 +139,11 @@ export class Notification {
     this._updatedAt = new Date();
   }
 
+  markAsDeleted(): void {
+    this._status = 'DELETED';
+    this._updatedAt = new Date();
+  }
+
   incrementRetry(): void {
     this._retryCount += 1;
     this._updatedAt = new Date();

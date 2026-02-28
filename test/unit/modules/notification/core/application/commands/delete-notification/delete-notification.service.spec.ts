@@ -32,7 +32,6 @@ describe('DeleteNotificationService', () => {
       update: jest.fn(),
       countByUserAndStatus: jest.fn(),
       markAllAsRead: jest.fn(),
-      delete: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -51,15 +50,17 @@ describe('DeleteNotificationService', () => {
   });
 
   describe('execute', () => {
-    it('should delete the notification', async () => {
+    it('should mark the notification as DELETED', async () => {
       const notification = makeNotification();
       notificationRepository.findById.mockResolvedValue(notification);
-      notificationRepository.delete.mockResolvedValue(undefined);
+      notificationRepository.update.mockResolvedValue(makeNotification({ status: 'DELETED' }));
 
       await service.execute(new DeleteNotificationCommand('notif-1', 'user-1'));
 
       expect(notificationRepository.findById).toHaveBeenCalledWith('notif-1');
-      expect(notificationRepository.delete).toHaveBeenCalledWith('notif-1');
+      expect(notificationRepository.update).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'DELETED' }),
+      );
     });
 
     it('should throw NotificationNotFoundException when notification not found', async () => {
@@ -68,7 +69,7 @@ describe('DeleteNotificationService', () => {
       await expect(
         service.execute(new DeleteNotificationCommand('unknown-id', 'user-1')),
       ).rejects.toThrow(NotificationNotFoundException);
-      expect(notificationRepository.delete).not.toHaveBeenCalled();
+      expect(notificationRepository.update).not.toHaveBeenCalled();
     });
 
     it('should throw NotificationNotFoundException when notification belongs to another user', async () => {
@@ -78,7 +79,7 @@ describe('DeleteNotificationService', () => {
       await expect(
         service.execute(new DeleteNotificationCommand('notif-1', 'user-1')),
       ).rejects.toThrow(NotificationNotFoundException);
-      expect(notificationRepository.delete).not.toHaveBeenCalled();
+      expect(notificationRepository.update).not.toHaveBeenCalled();
     });
   });
 });

@@ -8,4 +8,5 @@ export const NotificationStatusValues: readonly NotificationStatus[] = [
   'SENT',
   'FAILED',
   'READ',
+  'DELETED',
 ] as const;

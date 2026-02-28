@@ -22,6 +22,7 @@ export class DeleteNotificationService implements ICommandHandler<DeleteNotifica
       throw new NotificationNotFoundException(command.notificationId);
     }
 
-    await this.notificationRepository.delete(command.notificationId);
+    notification.markAsDeleted();
+    await this.notificationRepository.update(notification);
   }
 }

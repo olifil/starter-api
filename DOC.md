@@ -1219,6 +1219,7 @@ Authorization: Bearer <token>
 → 204 No Content
 ```
 
+Suppression douce (*soft delete*) : la notification reste en base avec le statut `DELETED`.
 Retourne `404` si la notification est introuvable ou appartient à un autre utilisateur.
 
 #### Nombre de non-lues _(Authentifié)_

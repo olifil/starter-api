@@ -566,14 +566,15 @@ describe('Notification (Integration)', () => {
       notificationId = notification.id;
     });
 
-    it('should delete the notification and return 204', async () => {
+    it('should soft-delete the notification (status DELETED) and return 204', async () => {
       await request(app.getHttpServer())
         .delete(`/notifications/${notificationId}`)
         .set('Authorization', `Bearer ${userToken}`)
         .expect(204);
 
-      const deleted = await prisma.notification.findUnique({ where: { id: notificationId } });
-      expect(deleted).toBeNull();
+      const updated = await prisma.notification.findUnique({ where: { id: notificationId } });
+      expect(updated).not.toBeNull();
+      expect(updated!.status).toBe(NotificationStatus.DELETED);
     });
 
     it('should return 404 when notification belongs to another user', async () => {

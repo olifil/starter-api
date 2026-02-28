@@ -78,11 +78,6 @@ export class PrismaNotificationRepository implements INotificationRepository {
     });
   }
 
-  async delete(id: string): Promise<void> {
-    await this.prisma.notification.delete({ where: { id } });
-    this.logger.log(`Notification deleted: ${id}`);
-  }
-
   async markAllAsRead(userId: string, channel?: NotificationChannel): Promise<number> {
     const now = new Date();
     const result = await this.prisma.notification.updateMany({
