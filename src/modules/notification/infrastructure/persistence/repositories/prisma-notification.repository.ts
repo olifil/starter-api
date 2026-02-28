@@ -41,7 +41,7 @@ export class PrismaNotificationRepository implements INotificationRepository {
       userId,
       ...(filters?.type && { type: filters.type }),
       ...(filters?.channel && { channel: filters.channel }),
-      ...(filters?.status && { status: filters.status }),
+      status: filters?.status ?? { not: 'DELETED' },
     };
 
     const [prismaNotifications, total] = await Promise.all([

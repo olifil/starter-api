@@ -3,6 +3,8 @@ import { PrismaService } from '@database/prisma.service';
 import { PrismaNotificationRepository } from '@modules/notification/infrastructure/persistence/repositories/prisma-notification.repository';
 import { Notification } from '@modules/notification/core/domain/entities/notification.entity';
 import { NotificationType } from '@modules/notification/core/domain/value-objects/notification-type.vo';
+import { NotificationChannel } from '@modules/notification/core/domain/value-objects/notification-channel.vo';
+import { NotificationStatus } from '@modules/notification/core/domain/value-objects/notification-status.vo';
 
 const mockPrismaNotification = {
   id: 'notif-1',
@@ -44,11 +46,11 @@ describe('PrismaNotificationRepository', () => {
       id: data.id,
       userId: data.userId,
       type: new NotificationType(data.type),
-      channel: data.channel,
-      status: data.status,
+      channel: data.channel as NotificationChannel,
+      status: data.status as NotificationStatus,
       subject: data.subject ?? undefined,
       body: data.body,
-      metadata: (data.metadata as Record<string, unknown>) ?? undefined,
+      metadata: (data.metadata as unknown as Record<string, unknown>) ?? undefined,
       sentAt: data.sentAt ?? undefined,
       readAt: data.readAt ?? undefined,
       failedAt: data.failedAt ?? undefined,
@@ -132,14 +134,14 @@ describe('PrismaNotificationRepository', () => {
 
       expect(mockPrisma.notification.findMany).toHaveBeenCalledTimes(1);
       expect(mockPrisma.notification.findMany).toHaveBeenCalledWith({
-        where: { userId: 'user-1' },
+        where: { userId: 'user-1', status: { not: 'DELETED' } },
         skip: 5,
         take: 5,
         orderBy: { createdAt: 'desc' },
       });
       expect(mockPrisma.notification.count).toHaveBeenCalledTimes(1);
       expect(mockPrisma.notification.count).toHaveBeenCalledWith({
-        where: { userId: 'user-1' },
+        where: { userId: 'user-1', status: { not: 'DELETED' } },
       });
       expect(result.notifications).toHaveLength(2);
       expect(result.notifications[0]).toBeInstanceOf(Notification);
@@ -174,13 +176,13 @@ describe('PrismaNotificationRepository', () => {
       await repository.findByUserId('user-1', 1, 10, { type: 'welcome' });
 
       expect(mockPrisma.notification.findMany).toHaveBeenCalledWith({
-        where: { userId: 'user-1', type: 'welcome' },
+        where: { userId: 'user-1', type: 'welcome', status: { not: 'DELETED' } },
         skip: 0,
         take: 10,
         orderBy: { createdAt: 'desc' },
       });
       expect(mockPrisma.notification.count).toHaveBeenCalledWith({
-        where: { userId: 'user-1', type: 'welcome' },
+        where: { userId: 'user-1', type: 'welcome', status: { not: 'DELETED' } },
       });
     });
 
@@ -191,13 +193,13 @@ describe('PrismaNotificationRepository', () => {
       await repository.findByUserId('user-1', 1, 10, { channel: 'WEBSOCKET' });
 
       expect(mockPrisma.notification.findMany).toHaveBeenCalledWith({
-        where: { userId: 'user-1', channel: 'WEBSOCKET' },
+        where: { userId: 'user-1', channel: 'WEBSOCKET', status: { not: 'DELETED' } },
         skip: 0,
         take: 10,
         orderBy: { createdAt: 'desc' },
       });
       expect(mockPrisma.notification.count).toHaveBeenCalledWith({
-        where: { userId: 'user-1', channel: 'WEBSOCKET' },
+        where: { userId: 'user-1', channel: 'WEBSOCKET', status: { not: 'DELETED' } },
       });
     });
 
@@ -239,14 +241,48 @@ describe('PrismaNotificationRepository', () => {
       });
     });
 
-    it('should not add extra fields to where when filters are empty object', async () => {
+    it('should exclude DELETED notifications by default when no status filter is provided', async () => {
+      mockPrisma.notification.findMany.mockResolvedValue([]);
+      mockPrisma.notification.count.mockResolvedValue(0);
+
+      await repository.findByUserId('user-1', 1, 10);
+
+      expect(mockPrisma.notification.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', status: { not: 'DELETED' } },
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(mockPrisma.notification.count).toHaveBeenCalledWith({
+        where: { userId: 'user-1', status: { not: 'DELETED' } },
+      });
+    });
+
+    it('should use explicit status filter when provided', async () => {
+      mockPrisma.notification.findMany.mockResolvedValue([]);
+      mockPrisma.notification.count.mockResolvedValue(0);
+
+      await repository.findByUserId('user-1', 1, 10, { status: 'READ' });
+
+      expect(mockPrisma.notification.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', status: 'READ' },
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(mockPrisma.notification.count).toHaveBeenCalledWith({
+        where: { userId: 'user-1', status: 'READ' },
+      });
+    });
+
+    it('should exclude DELETED by default when filters is an empty object', async () => {
       mockPrisma.notification.findMany.mockResolvedValue([]);
       mockPrisma.notification.count.mockResolvedValue(0);
 
       await repository.findByUserId('user-1', 1, 10, {});
 
       expect(mockPrisma.notification.findMany).toHaveBeenCalledWith({
-        where: { userId: 'user-1' },
+        where: { userId: 'user-1', status: { not: 'DELETED' } },
         skip: 0,
         take: 10,
         orderBy: { createdAt: 'desc' },

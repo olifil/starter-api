@@ -207,6 +207,29 @@ describe('Notification (Integration)', () => {
       expect(response.body.data.length).toBe(0);
     });
 
+    it('should not return DELETED notifications', async () => {
+      await prisma.notification.create({
+        data: {
+          userId,
+          type: 'test-notification',
+          channel: NotificationChannel.WEBSOCKET,
+          status: NotificationStatus.DELETED,
+          body: 'Deleted notification',
+        },
+      });
+
+      const response = await request(app.getHttpServer())
+        .get('/notifications')
+        .set('Authorization', `Bearer ${userToken}`)
+        .expect(200);
+
+      // Les 5 notifications existantes + 1 DELETED → seules les 5 doivent apparaître
+      expect(response.body.data.length).toBe(5);
+      expect(
+        response.body.data.every((n: { status: string }) => n.status !== 'DELETED'),
+      ).toBe(true);
+    });
+
     it('should return 401 without authentication', async () => {
       await request(app.getHttpServer()).get('/notifications').expect(401);
     });
