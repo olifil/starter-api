@@ -59,4 +59,8 @@ export class WebPushSender implements ChannelSenderPort {
   isEnabled(): boolean {
     return this.enabled;
   }
+
+  defaultUserPreference(): boolean {
+    return this.isEnabled();
+  }
 }

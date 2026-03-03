@@ -72,6 +72,18 @@ describe('WebPushSender', () => {
     });
   });
 
+  describe('defaultUserPreference', () => {
+    it('should return true when VAPID is configured', async () => {
+      const sender = await buildSender();
+      expect(sender.defaultUserPreference()).toBe(true);
+    });
+
+    it('should return false when VAPID is not configured', async () => {
+      const sender = await buildSender({ 'notification.webPush.enabled': false });
+      expect(sender.defaultUserPreference()).toBe(false);
+    });
+  });
+
   describe('send', () => {
     it('should call sendNotification with correct subscription and payload', async () => {
       mockSendNotification.mockResolvedValue({});

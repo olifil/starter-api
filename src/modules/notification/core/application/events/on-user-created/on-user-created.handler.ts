@@ -60,7 +60,7 @@ export class OnUserCreatedHandler implements IEventHandler<UserCreatedEvent> {
           new NotificationPreference({
             userId,
             channel: sender.channel,
-            enabled: sender.isEnabled(),
+            enabled: sender.defaultUserPreference(),
           }),
         ),
       ),

@@ -58,6 +58,18 @@ describe('WebSocketSender', () => {
     });
   });
 
+  describe('defaultUserPreference', () => {
+    it('should return true when WebSocket is enabled', async () => {
+      const sender = await buildSender();
+      expect(sender.defaultUserPreference()).toBe(true);
+    });
+
+    it('should return false when WebSocket is disabled', async () => {
+      const sender = await buildSender({ 'notification.websocket.enabled': false });
+      expect(sender.defaultUserPreference()).toBe(false);
+    });
+  });
+
   describe('send', () => {
     it('should call gateway.sendToUser with correct arguments', async () => {
       const sender = await buildSender();

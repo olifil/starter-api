@@ -1050,15 +1050,17 @@ NotificationConsumer (worker BullMQ — asynchrone)
 
 ### Initialisation des préférences à l'inscription
 
-Lors de la création d'un compte (`UserCreatedEvent`), des préférences sont automatiquement créées pour **chaque canal** avec un état initial reflétant la configuration serveur :
+Lors de la création d'un compte (`UserCreatedEvent`), des préférences sont automatiquement créées pour **chaque canal** via `ChannelSenderPort.defaultUserPreference()`. Cette méthode combine deux critères : la disponibilité serveur **et** les prérequis côté utilisateur.
 
-| Canal | État initial | Condition |
-|-------|-------------|-----------|
-| `EMAIL` | `enabled: true` | Si `SMTP_HOST` est défini |
-| `WEBSOCKET` | `enabled: true` | Si `WS_ENABLED=true` |
-| `WEB_PUSH` | `enabled: true` | Si les clés VAPID sont définies |
-| `SMS` | `enabled: false` | Toujours (noop) |
-| `PUSH` | `enabled: false` | Toujours (noop) |
+| Canal | État initial | Critères |
+|-------|-------------|----------|
+| `EMAIL` | `enabled: true` | Serveur configuré (`SMTP_HOST`) — email toujours disponible |
+| `WEBSOCKET` | `enabled: true` | Serveur configuré (`WS_ENABLED=true`) — fonctionne automatiquement |
+| `WEB_PUSH` | `enabled: true` | Serveur configuré (VAPID) — l'utilisateur s'abonne séparément |
+| `SMS` | `enabled: false` | Toujours `false` — requiert un numéro de téléphone (non implémenté) |
+| `PUSH` | `enabled: false` | Toujours `false` — requiert numéro de téléphone + push token device |
+
+> **Séparation des responsabilités** : `isEnabled()` reflète la disponibilité du canal côté serveur. `defaultUserPreference()` reflète ce qu'un utilisateur nouvellement inscrit peut réellement recevoir. Les deux peuvent différer : un canal SMS configuré reste `false` tant que l'utilisateur n'a pas fourni de numéro.
 
 L'opération utilise `upsert` (idempotente). L'utilisateur peut ensuite modifier ses préférences via `PUT /api/v1/notifications/preferences`.
 

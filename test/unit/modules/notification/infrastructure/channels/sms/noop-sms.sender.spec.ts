@@ -24,6 +24,10 @@ describe('NoopSmsSender', () => {
     expect(sender.isEnabled()).toBe(false);
   });
 
+  it('should have defaultUserPreference false — requires phone number', () => {
+    expect(sender.defaultUserPreference()).toBe(false);
+  });
+
   it('should resolve without error', async () => {
     await expect(
       sender.send({ to: '+33600000000', body: 'Test message' }),

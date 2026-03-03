@@ -18,4 +18,9 @@ export class NoopPushSender implements ChannelSenderPort {
   isEnabled(): boolean {
     return false;
   }
+
+  defaultUserPreference(): boolean {
+    // Requiert un numéro de téléphone et un push token device — toujours false à l'inscription
+    return false;
+  }
 }

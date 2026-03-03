@@ -18,4 +18,9 @@ export class NoopSmsSender implements ChannelSenderPort {
   isEnabled(): boolean {
     return false;
   }
+
+  defaultUserPreference(): boolean {
+    // Requiert un numéro de téléphone — toujours false jusqu'à ce que l'utilisateur en fournisse un
+    return false;
+  }
 }

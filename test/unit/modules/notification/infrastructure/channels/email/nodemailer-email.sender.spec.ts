@@ -102,6 +102,18 @@ describe('NodemailerEmailSender', () => {
     });
   });
 
+  describe('defaultUserPreference', () => {
+    it('should return true when SMTP is enabled', async () => {
+      const { sender } = await buildSender();
+      expect(sender.defaultUserPreference()).toBe(true);
+    });
+
+    it('should return false when SMTP is disabled', async () => {
+      const { sender } = await buildSender({ 'notification.smtp.enabled': false });
+      expect(sender.defaultUserPreference()).toBe(false);
+    });
+  });
+
   describe('send', () => {
     it('should send an email with correct fields', async () => {
       mockSendMail.mockResolvedValue({ messageId: 'test-id' });

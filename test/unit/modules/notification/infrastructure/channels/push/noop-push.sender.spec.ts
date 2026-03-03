@@ -24,6 +24,10 @@ describe('NoopPushSender', () => {
     expect(sender.isEnabled()).toBe(false);
   });
 
+  it('should have defaultUserPreference false — requires phone number and push token', () => {
+    expect(sender.defaultUserPreference()).toBe(false);
+  });
+
   it('should resolve without error', async () => {
     await expect(
       sender.send({ to: 'user-id', body: 'Test notification' }),

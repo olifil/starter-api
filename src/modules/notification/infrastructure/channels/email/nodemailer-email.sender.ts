@@ -56,6 +56,10 @@ export class NodemailerEmailSender implements ChannelSenderPort {
     return this.enabled;
   }
 
+  defaultUserPreference(): boolean {
+    return this.isEnabled();
+  }
+
   private getAuth(): { user: string; pass: string } | undefined {
     const user = this.configService.get<string>('notification.smtp.user');
     const pass = this.configService.get<string>('notification.smtp.password');

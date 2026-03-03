@@ -14,8 +14,17 @@ import {
 } from '@modules/notification/core/domain/repositories/notification-preference.repository.interface';
 import { NotificationPreference } from '@modules/notification/core/domain/entities/notification-preference.entity';
 
-const makeChannelSender = (channel: string, enabled: boolean): jest.Mocked<ChannelSenderPort> =>
-  ({ channel, isEnabled: jest.fn().mockReturnValue(enabled), send: jest.fn() }) as never;
+const makeChannelSender = (
+  channel: string,
+  enabled: boolean,
+  defaultPref?: boolean,
+): jest.Mocked<ChannelSenderPort> =>
+  ({
+    channel,
+    isEnabled: jest.fn().mockReturnValue(enabled),
+    defaultUserPreference: jest.fn().mockReturnValue(defaultPref ?? enabled),
+    send: jest.fn(),
+  }) as never;
 
 describe('OnUserCreatedHandler', () => {
   let handler: OnUserCreatedHandler;
@@ -34,10 +43,12 @@ describe('OnUserCreatedHandler', () => {
       }),
     };
 
+    // SMS et PUSH sont simulés comme configurés côté serveur (isEnabled=true)
+    // mais defaultUserPreference=false car ils nécessitent des données utilisateur
     channelSenders = [
       makeChannelSender('EMAIL', true),
-      makeChannelSender('SMS', false),
-      makeChannelSender('PUSH', false),
+      makeChannelSender('SMS', true, false),
+      makeChannelSender('PUSH', true, false),
       makeChannelSender('WEB_PUSH', true),
       makeChannelSender('WEBSOCKET', true),
     ];
