@@ -116,6 +116,7 @@ export class PrismaUserRepository implements IUserRepository {
       password: HashedPassword.fromHash(prismaUser.passwordHash),
       firstName: prismaUser.firstName ?? '',
       lastName: prismaUser.lastName ?? '',
+      phoneNumber: prismaUser.phoneNumber ?? null,
       role: prismaUser.role,
       emailVerified: prismaUser.emailVerified,
       emailVerifiedAt: prismaUser.emailVerifiedAt,
@@ -136,7 +137,7 @@ export class PrismaUserRepository implements IUserRepository {
       emailVerifiedAt: domainUser.emailVerifiedAt,
       bio: null,
       avatarUrl: null,
-      phoneNumber: null,
+      phoneNumber: domainUser.phoneNumber ?? null,
       lastLoginAt: null,
     };
   }

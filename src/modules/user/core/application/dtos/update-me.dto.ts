@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength, ValidateIf } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  ValidateIf,
+} from 'class-validator';
 import { IsStrongPassword } from '@shared/validation/password.validator';
 
 export class UpdateMeDto {
@@ -36,4 +44,16 @@ export class UpdateMeDto {
   @IsString()
   @IsNotEmpty({ message: 'Le mot de passe actuel est requis pour modifier email ou mot de passe' })
   currentPassword?: string;
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    example: '+33612345678',
+    description: 'Numéro de téléphone mobile au format E.164 (ex: +33612345678)',
+  })
+  @IsOptional()
+  @Matches(/^\+[1-9]\d{1,14}$/, {
+    message: 'Numéro de téléphone invalide (format E.164 requis, ex: +33612345678)',
+  })
+  phoneNumber?: string | null;
 }

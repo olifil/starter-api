@@ -217,5 +217,40 @@ describe('RegisterService', () => {
       expect(savedUser.firstName).toBe('John');
       expect(savedUser.lastName).toBe('Doe');
     });
+
+    it('should propagate phoneNumber to the User entity when provided', async () => {
+      const command = new RegisterCommand(
+        'test@example.com',
+        'Password123!',
+        'John',
+        'Doe',
+        true,
+        '+33612345678',
+      );
+
+      userRepository.existsByEmail.mockResolvedValue(false);
+      userRepository.save.mockResolvedValue(createSavedUser());
+      emailTokenService.generateVerificationToken.mockResolvedValue('token');
+      matomoService.trackUserRegistration.mockResolvedValue(undefined);
+
+      await service.execute(command);
+
+      const savedUser = userRepository.save.mock.calls[0][0];
+      expect(savedUser.phoneNumber).toBe('+33612345678');
+    });
+
+    it('should create user without phoneNumber when not provided', async () => {
+      const command = new RegisterCommand('test@example.com', 'Password123!', 'John', 'Doe', true);
+
+      userRepository.existsByEmail.mockResolvedValue(false);
+      userRepository.save.mockResolvedValue(createSavedUser());
+      emailTokenService.generateVerificationToken.mockResolvedValue('token');
+      matomoService.trackUserRegistration.mockResolvedValue(undefined);
+
+      await service.execute(command);
+
+      const savedUser = userRepository.save.mock.calls[0][0];
+      expect(savedUser.phoneNumber).toBeNull();
+    });
   });
 });

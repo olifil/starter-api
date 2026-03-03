@@ -85,6 +85,7 @@ describe('UpdateUserService', () => {
         email: mockUser.email.value,
         firstName: mockUser.firstName,
         lastName: mockUser.lastName,
+        phoneNumber: null,
         fullName: mockUser.fullName,
         createdAt: mockUser.createdAt.toISOString(),
         updatedAt: mockUser.updatedAt.toISOString(),
@@ -116,7 +117,7 @@ describe('UpdateUserService', () => {
       await service.execute(command);
 
       // Assert
-      expect(updateProfileSpy).toHaveBeenCalledWith('Jane', mockUser.lastName);
+      expect(updateProfileSpy).toHaveBeenCalledWith('Jane', mockUser.lastName, undefined);
     });
 
     it('should update only lastName when firstName is not provided', async () => {
@@ -133,7 +134,22 @@ describe('UpdateUserService', () => {
       await service.execute(command);
 
       // Assert
-      expect(updateProfileSpy).toHaveBeenCalledWith(mockUser.firstName, 'Smith');
+      expect(updateProfileSpy).toHaveBeenCalledWith(mockUser.firstName, 'Smith', undefined);
+    });
+
+    it('should update phoneNumber when provided', async () => {
+      const command = new UpdateUserCommand('123', undefined, undefined, '+33612345678');
+      userRepository.findById.mockResolvedValue(mockUser);
+      userRepository.update.mockResolvedValue(mockUser);
+      const updateProfileSpy = jest.spyOn(mockUser, 'updateProfile');
+
+      await service.execute(command);
+
+      expect(updateProfileSpy).toHaveBeenCalledWith(
+        mockUser.firstName,
+        mockUser.lastName,
+        '+33612345678',
+      );
     });
 
     it('should not call updateProfile when both firstName and lastName are undefined', async () => {

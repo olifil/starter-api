@@ -21,6 +21,14 @@ export class UserProfileDto {
   lastName!: string;
 
   @Expose()
+  @ApiProperty({
+    description: 'Numéro de téléphone mobile (format E.164)',
+    nullable: true,
+    required: false,
+  })
+  phoneNumber!: string | null;
+
+  @Expose()
   @ApiProperty({ description: 'Nom complet' })
   fullName!: string;
 
@@ -38,6 +46,7 @@ export class UserProfileDto {
     dto.email = user.email.value;
     dto.firstName = user.firstName;
     dto.lastName = user.lastName;
+    dto.phoneNumber = user.phoneNumber;
     dto.fullName = user.fullName;
     dto.createdAt = user.createdAt.toISOString();
     dto.updatedAt = user.updatedAt.toISOString();

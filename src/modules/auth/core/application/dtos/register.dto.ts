@@ -1,4 +1,13 @@
-import { Equals, IsBoolean, IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import {
+  Equals,
+  IsBoolean,
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsStrongPassword } from '@shared/validation/password.validator';
 
@@ -41,4 +50,16 @@ export class RegisterDto {
   @IsBoolean({ message: "L'acceptation des CGU doit être un booléen" })
   @Equals(true, { message: "L'acceptation des conditions générales d'utilisation est obligatoire" })
   termsAccepted!: boolean;
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    example: '+33612345678',
+    description: 'Numéro de téléphone mobile au format E.164 (ex: +33612345678)',
+  })
+  @IsOptional()
+  @Matches(/^\+[1-9]\d{1,14}$/, {
+    message: 'Numéro de téléphone invalide (format E.164 requis, ex: +33612345678)',
+  })
+  phoneNumber?: string | null;
 }

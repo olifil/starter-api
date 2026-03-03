@@ -56,6 +56,7 @@ export class MeHttpController {
       dto.newEmail,
       dto.currentPassword,
       dto.newPassword,
+      dto.phoneNumber,
     );
     return this.commandBus.execute(command);
   }

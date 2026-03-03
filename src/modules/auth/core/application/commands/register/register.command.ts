@@ -7,5 +7,6 @@ export class RegisterCommand implements ICommand {
     public readonly firstName: string,
     public readonly lastName: string,
     public readonly termsAccepted: boolean,
+    public readonly phoneNumber?: string | null,
   ) {}
 }

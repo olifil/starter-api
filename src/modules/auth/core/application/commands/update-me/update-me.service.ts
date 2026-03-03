@@ -47,8 +47,16 @@ export class UpdateMeService implements ICommandHandler<UpdateMeCommand> {
       }
     }
 
-    if (command.firstName !== undefined || command.lastName !== undefined) {
-      user.updateProfile(command.firstName ?? user.firstName, command.lastName ?? user.lastName);
+    if (
+      command.firstName !== undefined ||
+      command.lastName !== undefined ||
+      command.phoneNumber !== undefined
+    ) {
+      user.updateProfile(
+        command.firstName ?? user.firstName,
+        command.lastName ?? user.lastName,
+        command.phoneNumber,
+      );
     }
 
     // Le changement d'email passe par un flux de vérification (token envoyé à la nouvelle adresse)

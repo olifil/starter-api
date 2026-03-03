@@ -117,6 +117,35 @@ describe('UpdateMeDto', () => {
     });
   });
 
+  describe('phoneNumber validation', () => {
+    it('should pass when phoneNumber is absent', async () => {
+      const dto = new UpdateMeDto();
+      const errors = await validate(dto);
+      expect(errors).toHaveLength(0);
+    });
+
+    it('should pass with a valid E.164 number', async () => {
+      const dto = new UpdateMeDto();
+      dto.phoneNumber = '+33612345678';
+      const errors = await validate(dto);
+      expect(errors).toHaveLength(0);
+    });
+
+    it('should fail with a number missing the + prefix', async () => {
+      const dto = new UpdateMeDto();
+      dto.phoneNumber = '0612345678';
+      const errors = await validate(dto);
+      expect(errors.some((e) => e.property === 'phoneNumber')).toBe(true);
+    });
+
+    it('should fail with a number containing non-digit characters', async () => {
+      const dto = new UpdateMeDto();
+      dto.phoneNumber = '+336-12-34-56-78';
+      const errors = await validate(dto);
+      expect(errors.some((e) => e.property === 'phoneNumber')).toBe(true);
+    });
+  });
+
   describe('currentPassword conditional validation', () => {
     it('should fail when newEmail is provided without currentPassword', async () => {
       const dto = new UpdateMeDto();

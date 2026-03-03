@@ -2,6 +2,7 @@ export interface ProfileChanges {
   firstName?: { old: string; new: string };
   lastName?: { old: string; new: string };
   email?: { old: string; new: string };
+  phoneNumber?: { old: string | null; new: string | null };
 }
 
 export class UserUpdatedEvent {

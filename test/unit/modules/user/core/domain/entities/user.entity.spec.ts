@@ -105,6 +105,18 @@ describe('User Entity', () => {
     });
   });
 
+  describe('phoneNumber', () => {
+    it('should default to null when not provided', () => {
+      const user = new User(createValidUserProps());
+      expect(user.phoneNumber).toBeNull();
+    });
+
+    it('should be set from props', () => {
+      const user = new User({ ...createValidUserProps(), phoneNumber: '+33612345678' });
+      expect(user.phoneNumber).toBe('+33612345678');
+    });
+  });
+
   describe('getters', () => {
     it('should return fullName as combination of firstName and lastName', () => {
       // Arrange
@@ -253,6 +265,48 @@ describe('User Entity', () => {
 
       // Act & Assert
       expect(() => user.updateProfile(maxName, maxName)).not.toThrow();
+    });
+
+    it('should update phoneNumber when provided', () => {
+      const user = new User(createValidUserProps());
+      user.clearDomainEvents();
+      user.updateProfile('John', 'Doe', '+33612345678');
+      expect(user.phoneNumber).toBe('+33612345678');
+    });
+
+    it('should track phoneNumber change in UserUpdatedEvent', () => {
+      const user = new User(createValidUserProps());
+      user.clearDomainEvents();
+      user.updateProfile('John', 'Doe', '+33612345678');
+      expect((user.domainEvents[0] as UserUpdatedEvent).changes).toEqual({
+        phoneNumber: { old: null, new: '+33612345678' },
+      });
+    });
+
+    it('should allow clearing phoneNumber with null', () => {
+      const user = new User({ ...createValidUserProps(), phoneNumber: '+33612345678' });
+      user.clearDomainEvents();
+      user.updateProfile('John', 'Doe', null);
+      expect(user.phoneNumber).toBeNull();
+      expect((user.domainEvents[0] as UserUpdatedEvent).changes.phoneNumber).toEqual({
+        old: '+33612345678',
+        new: null,
+      });
+    });
+
+    it('should not track phoneNumber when not passed (undefined)', () => {
+      const user = new User({ ...createValidUserProps(), phoneNumber: '+33612345678' });
+      user.clearDomainEvents();
+      user.updateProfile('John', 'Doe'); // phoneNumber not passed
+      expect(user.domainEvents).toHaveLength(0);
+      expect(user.phoneNumber).toBe('+33612345678');
+    });
+
+    it('should not emit event when phoneNumber is unchanged', () => {
+      const user = new User({ ...createValidUserProps(), phoneNumber: '+33612345678' });
+      user.clearDomainEvents();
+      user.updateProfile('John', 'Doe', '+33612345678');
+      expect(user.domainEvents).toHaveLength(0);
     });
   });
 

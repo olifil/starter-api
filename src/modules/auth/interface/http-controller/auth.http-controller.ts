@@ -45,6 +45,7 @@ export class AuthHttpController {
       dto.firstName,
       dto.lastName,
       dto.termsAccepted,
+      dto.phoneNumber,
     );
     await this.commandBus.execute(command);
   }

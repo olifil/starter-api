@@ -449,20 +449,30 @@ Appliquée via :
 ### Flux : Inscription
 
 ```
-POST /api/v1/auth/register  { email, password, firstName, lastName, termsAccepted }
+POST /api/v1/auth/register  { email, password, firstName, lastName, termsAccepted, phoneNumber? }
          │
          ▼
 RegisterService
   ├── Vérifie termsAccepted === true → 422 TermsNotAcceptedException si false
   ├── Valide l'email (value object Email)
   ├── Hashe le mot de passe (bcrypt via HashedPassword)
-  ├── Crée l'entité User → émet UserCreatedEvent
+  ├── Crée l'entité User (avec phoneNumber si fourni) → émet UserCreatedEvent
   ├── Persiste en base
   ├── Génère un JWT de vérification email (type: 'email-verification')
   ├── Enrichit UserCreatedEvent avec verificationToken
   ├── Publie UserCreatedEvent → OnUserCreatedHandler envoie l'email de bienvenue
   └── Retourne 204 No Content
 ```
+
+**Champs du corps :**
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| `email` | string | ✅ | Adresse email (unique) |
+| `password` | string | ✅ | Mot de passe fort (min 8 chars, maj, min, chiffre, spécial) |
+| `firstName` | string | ✅ | Prénom (max 50 chars) |
+| `lastName` | string | ✅ | Nom de famille (max 50 chars) |
+| `termsAccepted` | boolean | ✅ | Doit être `true` |
+| `phoneNumber` | string | ❌ | Numéro de téléphone mobile au format E.164 (ex: `+33612345678`) |
 
 > **Note** : l'inscription ne retourne **aucun token**. L'utilisateur doit vérifier son email via le lien envoyé, puis se connecter manuellement.
 
@@ -628,12 +638,42 @@ VerifyEmailService
 
 Le module User gère les **données de profil** des utilisateurs, séparé du module Auth qui gère l'identité.
 
+### Profil utilisateur
+
+Le profil expose les champs suivants :
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `id` | string | UUID unique |
+| `email` | string | Adresse email |
+| `firstName` | string | Prénom |
+| `lastName` | string | Nom de famille |
+| `fullName` | string | Prénom + Nom (calculé) |
+| `phoneNumber` | string \| null | Numéro de téléphone mobile E.164 (ex: `+33612345678`) |
+| `createdAt` | string | Date de création (ISO 8601) |
+| `updatedAt` | string | Date de dernière modification (ISO 8601) |
+
+### Mise à jour du profil (`PATCH /api/v1/users/me`)
+
+Tous les champs sont optionnels. Seuls les champs fournis sont modifiés.
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `firstName` | string | Nouveau prénom (max 50 chars) |
+| `lastName` | string | Nouveau nom (max 50 chars) |
+| `phoneNumber` | string \| null | Numéro E.164 ou `null` pour effacer |
+| `newEmail` | string | Nouveau email (déclenche un flux de confirmation) |
+| `newPassword` | string | Nouveau mot de passe (requiert `currentPassword`) |
+| `currentPassword` | string | Requis si `newEmail` ou `newPassword` est présent |
+
+> Le numéro de téléphone est validé au format E.164 strict : `+` suivi de 2 à 15 chiffres, sans espaces ni tirets (ex: `+33612345678`, `+12025551234`).
+
 ### Endpoints
 
 | Méthode | Route | Accès | Description |
 |---------|-------|-------|-------------|
 | `GET` | `/api/v1/users/me` | Authentifié | Mon profil |
-| `PUT` | `/api/v1/users/me` | Authentifié | Modifier mon profil |
+| `PATCH` | `/api/v1/users/me` | Authentifié | Modifier mon profil (firstName, lastName, phoneNumber, email, password) |
 | `DELETE` | `/api/v1/users/me` | Authentifié | Supprimer mon compte |
 | `GET` | `/api/v1/users` | ADMIN | Liste des utilisateurs |
 | `GET` | `/api/v1/users/search?q=&limit=` | ADMIN | Recherche par autocomplétion |
@@ -1057,7 +1097,7 @@ Lors de la création d'un compte (`UserCreatedEvent`), des préférences sont au
 | `EMAIL` | `enabled: true` | Serveur configuré (`SMTP_HOST`) — email toujours disponible |
 | `WEBSOCKET` | `enabled: true` | Serveur configuré (`WS_ENABLED=true`) — fonctionne automatiquement |
 | `WEB_PUSH` | `enabled: true` | Serveur configuré (VAPID) — l'utilisateur s'abonne séparément |
-| `SMS` | `enabled: false` | Toujours `false` — requiert un numéro de téléphone (non implémenté) |
+| `SMS` | `enabled: false` | Toujours `false` — requiert un numéro de téléphone (`phoneNumber` sur le profil) |
 | `PUSH` | `enabled: false` | Toujours `false` — requiert numéro de téléphone + push token device |
 
 > **Séparation des responsabilités** : `isEnabled()` reflète la disponibilité du canal côté serveur. `defaultUserPreference()` reflète ce qu'un utilisateur nouvellement inscrit peut réellement recevoir. Les deux peuvent différer : un canal SMS configuré reste `false` tant que l'utilisateur n'a pas fourni de numéro.

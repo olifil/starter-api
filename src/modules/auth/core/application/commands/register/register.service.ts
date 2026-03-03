@@ -48,6 +48,7 @@ export class RegisterService implements ICommandHandler<RegisterCommand> {
       password,
       firstName: command.firstName,
       lastName: command.lastName,
+      phoneNumber: command.phoneNumber,
     });
 
     // Sauvegarder

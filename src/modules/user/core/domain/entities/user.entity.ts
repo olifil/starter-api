@@ -11,6 +11,7 @@ export interface UserProps {
   password: HashedPassword;
   firstName: string;
   lastName: string;
+  phoneNumber?: string | null;
   role?: Role;
   emailVerified?: boolean;
   emailVerifiedAt?: Date | null;
@@ -24,6 +25,7 @@ export class User {
   private _password: HashedPassword;
   private _firstName: string;
   private _lastName: string;
+  private _phoneNumber: string | null;
   private _role: Role;
   private _emailVerified: boolean;
   private _emailVerifiedAt: Date | null;
@@ -37,6 +39,7 @@ export class User {
     this._password = props.password;
     this._firstName = props.firstName;
     this._lastName = props.lastName;
+    this._phoneNumber = props.phoneNumber ?? null;
     this._role = props.role || Role.AUTHENTICATED_USER;
     this._emailVerified = props.emailVerified ?? false;
     this._emailVerifiedAt = props.emailVerifiedAt ?? null;
@@ -75,6 +78,10 @@ export class User {
     return `${this._firstName} ${this._lastName}`;
   }
 
+  get phoneNumber(): string | null {
+    return this._phoneNumber;
+  }
+
   get role(): Role {
     return this._role;
   }
@@ -100,7 +107,7 @@ export class User {
   }
 
   // Méthodes métier
-  updateProfile(firstName: string, lastName: string): void {
+  updateProfile(firstName: string, lastName: string, phoneNumber?: string | null): void {
     this.validateName(firstName, 'firstName');
     this.validateName(lastName, 'lastName');
 
@@ -114,6 +121,11 @@ export class User {
     if (this._lastName !== lastName) {
       changes.lastName = { old: this._lastName, new: lastName };
       this._lastName = lastName;
+    }
+
+    if (phoneNumber !== undefined && this._phoneNumber !== phoneNumber) {
+      changes.phoneNumber = { old: this._phoneNumber, new: phoneNumber };
+      this._phoneNumber = phoneNumber;
     }
 
     if (Object.keys(changes).length > 0) {

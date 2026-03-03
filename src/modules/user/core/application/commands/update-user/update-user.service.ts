@@ -26,8 +26,12 @@ export class UpdateUserService implements ICommandHandler<UpdateUserCommand> {
     }
 
     // Appliquer les modifications via la méthode métier de l'entité
-    if (command.firstName || command.lastName) {
-      user.updateProfile(command.firstName ?? user.firstName, command.lastName ?? user.lastName);
+    if (command.firstName || command.lastName || command.phoneNumber !== undefined) {
+      user.updateProfile(
+        command.firstName ?? user.firstName,
+        command.lastName ?? user.lastName,
+        command.phoneNumber,
+      );
     }
 
     const updatedUser = await this.userRepository.update(user);

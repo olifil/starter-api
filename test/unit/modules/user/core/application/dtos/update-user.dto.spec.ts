@@ -72,4 +72,33 @@ describe('UpdateUserDto', () => {
       expect(errors[0].property).toBe('lastName');
     });
   });
+
+  describe('phoneNumber validation', () => {
+    it('should pass when phoneNumber is absent', async () => {
+      const dto = new UpdateUserDto();
+      const errors = await validate(dto);
+      expect(errors).toHaveLength(0);
+    });
+
+    it('should pass with a valid E.164 number', async () => {
+      const dto = new UpdateUserDto();
+      dto.phoneNumber = '+33612345678';
+      const errors = await validate(dto);
+      expect(errors).toHaveLength(0);
+    });
+
+    it('should fail with a number missing the + prefix', async () => {
+      const dto = new UpdateUserDto();
+      dto.phoneNumber = '0612345678';
+      const errors = await validate(dto);
+      expect(errors.some((e) => e.property === 'phoneNumber')).toBe(true);
+    });
+
+    it('should fail with a number containing non-digit characters', async () => {
+      const dto = new UpdateUserDto();
+      dto.phoneNumber = '+336-12-34-56-78';
+      const errors = await validate(dto);
+      expect(errors.some((e) => e.property === 'phoneNumber')).toBe(true);
+    });
+  });
 });
