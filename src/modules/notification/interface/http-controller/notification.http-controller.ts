@@ -13,8 +13,8 @@ import {
   UseGuards,
   Inject,
 } from '@nestjs/common';
+import { CHANNEL_SENDERS, ChannelSenderPort } from '../../core/domain/ports/channel-sender.port';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ConfigService } from '@nestjs/config';
 import {
   ApiTags,
   ApiOperation,
@@ -65,7 +65,8 @@ export class NotificationHttpController {
     private readonly templateRenderer: ITemplateRenderer,
     @Inject(NOTIFICATION_REPOSITORY)
     private readonly notificationRepository: INotificationRepository,
-    private readonly configService: ConfigService,
+    @Inject(CHANNEL_SENDERS)
+    private readonly channelSenders: ChannelSenderPort[],
   ) {}
 
   @Post('send')
@@ -89,6 +90,25 @@ export class NotificationHttpController {
       dto.locale,
     );
     return this.commandBus.execute(command);
+  }
+
+  @Get('channels')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Canaux de notification disponibles' })
+  @ApiResponse({
+    status: 200,
+    description: 'Liste des canaux activés',
+    schema: {
+      properties: {
+        channels: { type: 'array', items: { type: 'string', enum: [...NotificationChannelValues] } },
+      },
+    },
+  })
+  getAvailableChannels(): { channels: NotificationChannel[] } {
+    const channels = this.channelSenders
+      .filter((s) => s.isEnabled())
+      .map((s) => s.channel);
+    return { channels };
   }
 
   @Get()

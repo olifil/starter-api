@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { ConfigService } from '@nestjs/config';
 import { NotificationHttpController } from '@modules/notification/interface/http-controller/notification.http-controller';
 import { SendNotificationCommand } from '@modules/notification/core/application/commands/send-notification/send-notification.command';
 import { GetNotificationsQuery } from '@modules/notification/core/application/queries/get-notifications/get-notifications.query';
@@ -16,6 +15,13 @@ import {
   INotificationRepository,
   NOTIFICATION_REPOSITORY,
 } from '@modules/notification/core/domain/repositories/notification.repository.interface';
+import {
+  CHANNEL_SENDERS,
+  ChannelSenderPort,
+} from '@modules/notification/core/domain/ports/channel-sender.port';
+
+const makeChannelSender = (channel: string, enabled: boolean): jest.Mocked<ChannelSenderPort> =>
+  ({ channel, isEnabled: jest.fn().mockReturnValue(enabled), send: jest.fn() }) as never;
 
 describe('NotificationHttpController', () => {
   let controller: NotificationHttpController;
@@ -23,12 +29,20 @@ describe('NotificationHttpController', () => {
   let queryBus: { execute: jest.Mock };
   let templateRenderer: jest.Mocked<ITemplateRenderer>;
   let notificationRepository: Partial<jest.Mocked<INotificationRepository>>;
+  let channelSenders: jest.Mocked<ChannelSenderPort>[];
 
   beforeEach(async () => {
     commandBus = { execute: jest.fn() };
     queryBus = { execute: jest.fn() };
     templateRenderer = { render: jest.fn() };
     notificationRepository = { countByUserAndStatus: jest.fn() };
+    channelSenders = [
+      makeChannelSender('EMAIL', true),
+      makeChannelSender('SMS', false),
+      makeChannelSender('PUSH', false),
+      makeChannelSender('WEB_PUSH', true),
+      makeChannelSender('WEBSOCKET', true),
+    ];
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [NotificationHttpController],
@@ -37,7 +51,7 @@ describe('NotificationHttpController', () => {
         { provide: QueryBus, useValue: queryBus },
         { provide: TEMPLATE_RENDERER, useValue: templateRenderer },
         { provide: NOTIFICATION_REPOSITORY, useValue: notificationRepository },
-        { provide: ConfigService, useValue: { get: jest.fn() } },
+        { provide: CHANNEL_SENDERS, useValue: channelSenders },
       ],
     }).compile();
 
@@ -46,6 +60,28 @@ describe('NotificationHttpController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('getAvailableChannels', () => {
+    it('should return only enabled channels', () => {
+      const result = controller.getAvailableChannels();
+
+      expect(result).toEqual({ channels: ['EMAIL', 'WEB_PUSH', 'WEBSOCKET'] });
+    });
+
+    it('should return empty array when no channel is enabled', async () => {
+      channelSenders.forEach((s) => s.isEnabled.mockReturnValue(false));
+
+      const result = controller.getAvailableChannels();
+
+      expect(result).toEqual({ channels: [] });
+    });
+
+    it('should call isEnabled on every sender', () => {
+      controller.getAvailableChannels();
+
+      channelSenders.forEach((s) => expect(s.isEnabled).toHaveBeenCalledTimes(1));
+    });
   });
 
   describe('send', () => {

@@ -1148,6 +1148,27 @@ Variables : `{subject}`, `{message}`
 
 ### API REST Notifications
 
+#### Canaux disponibles _(Authentifié)_
+
+Retourne la liste des canaux de notification activés côté serveur (ceux dont le provider est configuré). À utiliser avant d'afficher les options de souscription (Web Push, préférences) dans l'interface utilisateur.
+
+```http
+GET /api/v1/notifications/channels
+Authorization: Bearer <token>
+
+→ { "channels": ["EMAIL", "WEBSOCKET", "WEB_PUSH"] }
+```
+
+Les canaux `SMS` et `PUSH` sont toujours absents de la réponse (implémentation noop). Les canaux retournés dépendent des variables d'environnement :
+
+| Canal | Condition d'activation |
+|-------|----------------------|
+| `EMAIL` | `SMTP_HOST` défini |
+| `WEBSOCKET` | `WS_ENABLED=true` |
+| `WEB_PUSH` | `VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` définis |
+
+---
+
 #### Envoyer une notification _(ADMIN)_
 
 ```http
