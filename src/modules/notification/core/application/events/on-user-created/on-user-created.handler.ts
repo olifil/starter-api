@@ -1,8 +1,17 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { EventsHandler, IEventHandler, CommandBus } from '@nestjs/cqrs';
 import { ConfigService } from '@nestjs/config';
 import { UserCreatedEvent } from '@modules/user/core/domain/events/user-created.event';
 import { SendNotificationCommand } from '../../commands/send-notification/send-notification.command';
+import {
+  CHANNEL_SENDERS,
+  ChannelSenderPort,
+} from '../../../domain/ports/channel-sender.port';
+import {
+  INotificationPreferenceRepository,
+  NOTIFICATION_PREFERENCE_REPOSITORY,
+} from '../../../domain/repositories/notification-preference.repository.interface';
+import { NotificationPreference } from '../../../domain/entities/notification-preference.entity';
 
 @Injectable()
 @EventsHandler(UserCreatedEvent)
@@ -12,6 +21,10 @@ export class OnUserCreatedHandler implements IEventHandler<UserCreatedEvent> {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly configService: ConfigService,
+    @Inject(CHANNEL_SENDERS)
+    private readonly channelSenders: ChannelSenderPort[],
+    @Inject(NOTIFICATION_PREFERENCE_REPOSITORY)
+    private readonly preferenceRepository: INotificationPreferenceRepository,
   ) {}
 
   async handle(event: UserCreatedEvent): Promise<void> {
@@ -26,13 +39,30 @@ export class OnUserCreatedHandler implements IEventHandler<UserCreatedEvent> {
       ? `${frontendUrl}${verificationPath}?token=${event.verificationToken}`
       : undefined;
 
-    await this.commandBus.execute(
-      new SendNotificationCommand(
-        [event.userId],
-        'welcome',
-        ['EMAIL'],
-        { firstName: event.firstName, lastName: event.lastName, verificationLink },
-        'fr',
+    await Promise.all([
+      this.commandBus.execute(
+        new SendNotificationCommand(
+          [event.userId],
+          'welcome',
+          ['EMAIL'],
+          { firstName: event.firstName, lastName: event.lastName, verificationLink },
+          'fr',
+        ),
+      ),
+      this.initializePreferences(event.userId),
+    ]);
+  }
+
+  private async initializePreferences(userId: string): Promise<void> {
+    await Promise.all(
+      this.channelSenders.map((sender) =>
+        this.preferenceRepository.upsert(
+          new NotificationPreference({
+            userId,
+            channel: sender.channel,
+            enabled: sender.isEnabled(),
+          }),
+        ),
       ),
     );
   }

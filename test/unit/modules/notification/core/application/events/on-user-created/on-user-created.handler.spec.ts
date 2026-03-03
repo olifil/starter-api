@@ -4,10 +4,24 @@ import { ConfigService } from '@nestjs/config';
 import { OnUserCreatedHandler } from '@modules/notification/core/application/events/on-user-created/on-user-created.handler';
 import { UserCreatedEvent } from '@modules/user/core/domain/events/user-created.event';
 import { SendNotificationCommand } from '@modules/notification/core/application/commands/send-notification/send-notification.command';
+import {
+  CHANNEL_SENDERS,
+  ChannelSenderPort,
+} from '@modules/notification/core/domain/ports/channel-sender.port';
+import {
+  INotificationPreferenceRepository,
+  NOTIFICATION_PREFERENCE_REPOSITORY,
+} from '@modules/notification/core/domain/repositories/notification-preference.repository.interface';
+import { NotificationPreference } from '@modules/notification/core/domain/entities/notification-preference.entity';
+
+const makeChannelSender = (channel: string, enabled: boolean): jest.Mocked<ChannelSenderPort> =>
+  ({ channel, isEnabled: jest.fn().mockReturnValue(enabled), send: jest.fn() }) as never;
 
 describe('OnUserCreatedHandler', () => {
   let handler: OnUserCreatedHandler;
   let commandBus: jest.Mocked<CommandBus>;
+  let preferenceRepository: jest.Mocked<INotificationPreferenceRepository>;
+  let channelSenders: jest.Mocked<ChannelSenderPort>[];
 
   beforeEach(async () => {
     const mockCommandBus = { execute: jest.fn().mockResolvedValue([]) };
@@ -20,11 +34,23 @@ describe('OnUserCreatedHandler', () => {
       }),
     };
 
+    channelSenders = [
+      makeChannelSender('EMAIL', true),
+      makeChannelSender('SMS', false),
+      makeChannelSender('PUSH', false),
+      makeChannelSender('WEB_PUSH', true),
+      makeChannelSender('WEBSOCKET', true),
+    ];
+
+    preferenceRepository = { upsert: jest.fn().mockResolvedValue(undefined) } as never;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OnUserCreatedHandler,
         { provide: CommandBus, useValue: mockCommandBus },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: CHANNEL_SENDERS, useValue: channelSenders },
+        { provide: NOTIFICATION_PREFERENCE_REPOSITORY, useValue: preferenceRepository },
       ],
     }).compile();
 
@@ -84,6 +110,54 @@ describe('OnUserCreatedHandler', () => {
 
       const command = commandBus.execute.mock.calls[0][0] as SendNotificationCommand;
       expect(command.userIds).toEqual(['user-42']);
+    });
+
+    describe('preference initialization', () => {
+      it('should create a preference for every channel', async () => {
+        const event = new UserCreatedEvent('user-1', 'john@example.com', 'John', 'Doe');
+
+        await handler.handle(event);
+
+        expect(preferenceRepository.upsert).toHaveBeenCalledTimes(5);
+      });
+
+      it('should set enabled=true for configured channels and enabled=false for noop channels', async () => {
+        const event = new UserCreatedEvent('user-1', 'john@example.com', 'John', 'Doe');
+
+        await handler.handle(event);
+
+        const upsertedPrefs = preferenceRepository.upsert.mock.calls.map(
+          ([pref]: [NotificationPreference]) => ({ channel: pref.channel, enabled: pref.enabled }),
+        );
+
+        expect(upsertedPrefs).toEqual(
+          expect.arrayContaining([
+            { channel: 'EMAIL', enabled: true },
+            { channel: 'SMS', enabled: false },
+            { channel: 'PUSH', enabled: false },
+            { channel: 'WEB_PUSH', enabled: true },
+            { channel: 'WEBSOCKET', enabled: true },
+          ]),
+        );
+      });
+
+      it('should use upsert (idempotent) not save', async () => {
+        const event = new UserCreatedEvent('user-1', 'john@example.com', 'John', 'Doe');
+
+        await handler.handle(event);
+
+        expect(preferenceRepository.upsert).toHaveBeenCalled();
+      });
+
+      it('should associate preferences to the correct userId', async () => {
+        const event = new UserCreatedEvent('user-42', 'jane@example.com', 'Jane', 'Smith');
+
+        await handler.handle(event);
+
+        preferenceRepository.upsert.mock.calls.forEach(([pref]: [NotificationPreference]) => {
+          expect(pref.userId).toBe('user-42');
+        });
+      });
     });
   });
 });

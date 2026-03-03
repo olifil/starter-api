@@ -1048,6 +1048,20 @@ NotificationConsumer (worker BullMQ — asynchrone)
 
 > Si un canal est désactivé mais demandé, il est silencieusement ignoré. La requête répond normalement pour les autres canaux.
 
+### Initialisation des préférences à l'inscription
+
+Lors de la création d'un compte (`UserCreatedEvent`), des préférences sont automatiquement créées pour **chaque canal** avec un état initial reflétant la configuration serveur :
+
+| Canal | État initial | Condition |
+|-------|-------------|-----------|
+| `EMAIL` | `enabled: true` | Si `SMTP_HOST` est défini |
+| `WEBSOCKET` | `enabled: true` | Si `WS_ENABLED=true` |
+| `WEB_PUSH` | `enabled: true` | Si les clés VAPID sont définies |
+| `SMS` | `enabled: false` | Toujours (noop) |
+| `PUSH` | `enabled: false` | Toujours (noop) |
+
+L'opération utilise `upsert` (idempotente). L'utilisateur peut ensuite modifier ses préférences via `PUT /api/v1/notifications/preferences`.
+
 ### Notifications pré-câblées
 
 Le module écoute automatiquement ces événements domaine :
